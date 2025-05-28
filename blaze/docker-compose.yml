@@ -1,0 +1,17 @@
+services:
+  blaze:
+    image: samply/blaze
+    ports:
+      - 8081:8080
+    healthcheck:
+      test: curl -f http://localhost:8080/fhir/metadata
+      start_period: 1m
+
+  blaze-loader:
+    image: curlimages/curl
+    depends_on:
+      blaze:
+        condition: service_healthy
+    volumes:
+      - ./blaze-loader:/blaze-loader:ro
+    command: sh /blaze-loader/load.sh

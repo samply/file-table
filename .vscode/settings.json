@@ -1,0 +1,9 @@
+{
+    // Make Tailwind CSS IntelliSense work with Dioxus
+    "tailwindCSS.experimental.classRegex": [
+        "class\\s*:\\s*\"([^\"]*)"
+    ],
+    "tailwindCSS.includeLanguages": {
+        "rust": "html"
+    },
+}
