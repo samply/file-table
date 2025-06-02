@@ -18,6 +18,14 @@ enum Route {
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
+    dioxus::logger::initialize_default();
+
+    #[cfg(feature = "server")]
+    if let Err(e) = server::load_config() {
+        tracing::error!("Failed to load config: {e}");
+        std::process::exit(1);
+    }
+
     dioxus::launch(App);
 }
 
@@ -46,19 +54,6 @@ fn PatientTable() -> Element {
         Some(Err(e)) => rsx! { "Error loading patients: {e:#}" },
         None => rsx! { "Loading..." },
     }
-}
-
-fn now_until(timestamp: jiff::Timestamp) -> String {
-    let zoned = timestamp.to_zoned(jiff::tz::TimeZone::system());
-    let span = jiff::Zoned::now()
-        .until(
-            jiff::ZonedDifference::new(&zoned)
-                .smallest(jiff::Unit::Day)
-                .largest(jiff::Unit::Year),
-        )
-        // unwrap should be safe here, since both timestamps are in the same timezone
-        .unwrap();
-    format!("{span:#}")
 }
 
 #[component]

@@ -2,19 +2,54 @@ use dioxus::prelude::*;
 
 use crate::fhir;
 
+#[cfg(feature = "server")]
+#[derive(Debug, serde::Deserialize)]
+pub struct Config {
+    pub fhir_base_url: String,
+    pub fhir_username: Option<String>,
+    pub fhir_password: Option<String>,
+}
+
+#[cfg(feature = "server")]
+static CONFIG: std::sync::OnceLock<Config> = std::sync::OnceLock::new();
+
+/// Load the configuration from scout.toml. Should be called once on server startup.
+#[cfg(feature = "server")]
+pub fn load_config() -> anyhow::Result<()> {
+    let config_str = std::fs::read_to_string("scout.toml")?;
+    let config = toml::from_str(&config_str)?;
+    CONFIG.set(config).expect("Config should only be set once");
+    Ok(())
+}
+
+#[cfg(feature = "server")]
+pub fn config() -> &'static Config {
+    CONFIG.get().expect("Config should be loaded before use")
+}
+
+#[cfg(feature = "server")]
+pub trait RequestBuilderExt {
+    fn with_auth(self) -> Self;
+}
+
+#[cfg(feature = "server")]
+impl RequestBuilderExt for reqwest::RequestBuilder {
+    fn with_auth(self) -> Self {
+        if let Some(fhir_username) = &config().fhir_username {
+            self.basic_auth(fhir_username, config().fhir_password.as_deref())
+        } else {
+            self
+        }
+    }
+}
+
 #[server]
 pub async fn get_patients() -> Result<Vec<fhir::Patient>, ServerFnError> {
-    let url = format!(
-        "{}/Patient",
-        std::env::var("FHIR_BASE_URL").unwrap_or("http://127.0.0.1:8081/fhir".into())
-    );
+    let url = format!("{}/Patient", config().fhir_base_url);
     let client = reqwest::Client::new();
     let bundle = client
         .get(&url)
-        .basic_auth(
-            std::env::var("FHIR_USERNAME").unwrap_or_default(),
-            Some(std::env::var("FHIR_PASSWORD").unwrap_or_default()),
-        )
+        .with_auth()
         .send()
         .await?
         .error_for_status()?
@@ -27,76 +62,17 @@ pub async fn get_patients() -> Result<Vec<fhir::Patient>, ServerFnError> {
         .collect())
 }
 
-pub async fn get_resources<T>(resource_type: &str) -> Result<Vec<T>, ServerFnError>
-where
-    T: serde::de::DeserializeOwned,
-{
-    let url = format!(
-        "{}/{}",
-        std::env::var("FHIR_BASE_URL").unwrap_or("http://127.0.0.1:8081/fhir".into()),
-        resource_type
-    );
-    let client = reqwest::Client::new();
-    let bundle = client
-        .get(&url)
-        .basic_auth(
-            std::env::var("FHIR_USERNAME").unwrap_or_default(),
-            Some(std::env::var("FHIR_PASSWORD").unwrap_or_default()),
-        )
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<fhir::FhirBundle<T>>()
-        .await?;
-    Ok(bundle
-        .entry
-        .into_iter()
-        .map(|entry| entry.resource)
-        .collect())
-}
-
-pub async fn get_resource<T>(resource_type: &str, id: &str) -> anyhow::Result<T>
-where
-    T: serde::de::DeserializeOwned,
-{
-    let url = format!(
-        "{}/{}/{}",
-        std::env::var("FHIR_BASE_URL").unwrap_or("http://127.0.0.1:8081/fhir".into()),
-        resource_type,
-        id
-    );
-    let client = reqwest::Client::new();
-    let resource = client
-        .get(&url)
-        .basic_auth(
-            std::env::var("FHIR_USERNAME").unwrap_or_default(),
-            Some(std::env::var("FHIR_PASSWORD").unwrap_or_default()),
-        )
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<T>()
-        .await?;
-    Ok(resource)
-}
-
-/// Get a patient and their related resources. For now returns the patient and their encounters.
+/// Get a patient and their related resources.
 #[server]
 pub async fn get_patient_details(
     id: String,
 ) -> Result<(fhir::Patient, fhir::MixedBundle), ServerFnError> {
-    let url = format!(
-        "{}/Patient/{}/$everything",
-        std::env::var("FHIR_BASE_URL").unwrap_or("http://127.0.0.1:8081/fhir".into()),
-        id
-    );
+    let url = format!("{}/Patient/{}/$everything", config().fhir_base_url, id);
     let client = reqwest::Client::new();
-    let mut bundle = client
+
+    let bundle = client
         .get(&url)
-        .basic_auth(
-            std::env::var("FHIR_USERNAME").unwrap_or_default(),
-            Some(std::env::var("FHIR_PASSWORD").unwrap_or_default()),
-        )
+        .with_auth()
         .send()
         .await?
         .error_for_status()?

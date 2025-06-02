@@ -1,4 +1,6 @@
 {
+    // Enable LSP for code gated behind the "server" feature flag
+    "rust-analyzer.cargo.features": ["server"],
     // Make Tailwind CSS IntelliSense work with Dioxus
     "tailwindCSS.experimental.classRegex": [
         "class\\s*:\\s*\"([^\"]*)"
