@@ -46,9 +46,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: index.docker.io/samply/scout
-          subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
+      # This step is commented out because it does not work for private GitHub repositories. Enable this when the repository is public.
+      # - name: Generate artifact attestation
+      #   uses: actions/attest-build-provenance@v2
+      #   with:
+      #     subject-name: index.docker.io/samply/scout
+      #     subject-digest: ${{ steps.push.outputs.digest }}
+      #     push-to-registry: true
