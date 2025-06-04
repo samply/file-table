@@ -15,3 +15,17 @@ services:
     volumes:
       - ./blaze-loader:/blaze-loader:ro
     command: sh /blaze-loader/load.sh
+
+  scout:
+    build: ..
+    ports:
+      - 8080:8080
+    configs:
+      - scout.toml
+    profiles:
+      - scout
+
+configs:
+  scout.toml:
+    content: |
+      fhir_base_url = "http://blaze:8080/fhir"

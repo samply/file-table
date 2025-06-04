@@ -1,7 +1,6 @@
 services:
   scout:
     image: samply/scout
-    build: .
     ports:
       - 8080:8080
     extra_hosts:
