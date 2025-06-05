@@ -53,7 +53,8 @@ pub fn Table(props: TableProps) -> Element {
             div {
                 id: "customize",
                 popover: "auto",
-                class: "border border-gray-300 rounded shadow-md p-2 absolute [position-anchor:--customize] [position-area:bottom]",
+                // inset-auto is only required for the anchor positioning polyfill
+                class: "border border-gray-300 rounded shadow-md p-2 absolute [position-anchor:--customize] [position-area:bottom_center] inset-auto",
                 for header in props.columns.iter().cloned() {
                     label {
                         class: "flex items-center gap-2",
