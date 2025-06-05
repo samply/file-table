@@ -43,8 +43,8 @@ fn PatientTable() -> Element {
     match &*patients.read_unchecked() {
         Some(Ok(patients)) => rsx! {
             table::Table {
-                headers: vec!["ID".to_string(), /*"Name".to_string(),*/ "Gender".to_string(), "Birth Date".to_string(), "Deceased".to_string(), "Address".to_string(), "".to_string()],
-                rows: patients.iter().map(|p| vec![p.id(), /*p.name(),*/ p.gender(), p.birth_date(), p.deceased(), p.address()]).collect(),
+                columns: vec!["ID".to_string(), /*"Name".to_string(),*/ "Gender".to_string(), "Birth Date".to_string(), "Deceased".to_string(), "Address".to_string()],
+                data: patients.iter().map(|p| vec![p.id(), /*p.name(),*/ p.gender(), p.birth_date(), p.deceased(), p.address()]).collect(),
                 ondetail: move |id| {
                     // Navigate to the patient view when a row is clicked
                     navigator().push(Route::PatientView { id });
