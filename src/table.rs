@@ -94,12 +94,12 @@ pub fn Table(props: TableProps) -> Element {
                 class: "grid grid-cols-subgrid col-span-full",
                 for header in custom_columns().iter() {
                     div {
-                        class: "outline outline-gray-300 p-2 bg-gray-100 font-bold",
+                        class: "outline outline-gray-300 p-1 bg-gray-100 font-bold",
                         "{header}"
                     }
                 }
                 div {
-                    class: "outline outline-gray-300 p-2 bg-gray-100"
+                    class: "outline outline-gray-300 p-1 bg-gray-100"
                 }
             }
             for row in filtered_data().into_iter() {
@@ -107,12 +107,12 @@ pub fn Table(props: TableProps) -> Element {
                     class: "grid grid-cols-subgrid col-span-full",
                     for cell in row.iter() {
                         div {
-                            class: "outline outline-gray-300 p-2",
+                            class: "outline outline-gray-300 p-1",
                             "{cell}"
                         }
                     }
                     button {
-                        class: "outline outline-gray-300 p-2",
+                        class: "outline outline-gray-300 p-1",
                         onclick: move |_| {
                             (props.ondetail)(row[0].clone());
                         },
