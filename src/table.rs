@@ -89,30 +89,39 @@ pub fn Table(props: TableProps) -> Element {
         }
         div {
             class: "grid gap-px p-px m-4",
-            style: "grid-template-columns: repeat({custom_columns().len() + 1}, auto)",
+            style: "grid-template-columns: max-content repeat({custom_columns().len()}, auto) max-content",
             div {
                 class: "grid grid-cols-subgrid col-span-full",
+                div {
+                    class: "outline outline-gray-300 px-2 py-1 bg-gray-100",
+                }
                 for header in custom_columns().iter() {
                     div {
-                        class: "outline outline-gray-300 p-1 bg-gray-100 font-bold",
+                        class: "outline outline-gray-300 px-2 py-1 bg-gray-100 font-bold",
                         "{header}"
                     }
                 }
                 div {
-                    class: "outline outline-gray-300 p-1 bg-gray-100"
+                    class: "outline outline-gray-300 px-2 py-1 bg-gray-100"
                 }
             }
             for row in filtered_data().into_iter() {
                 div {
                     class: "grid grid-cols-subgrid col-span-full",
+                    label {
+                        class: "outline outline-gray-300 px-2 py-1 flex items-center",
+                        input {
+                            r#type: "checkbox",
+                        }
+                    }
                     for cell in row.iter() {
                         div {
-                            class: "outline outline-gray-300 p-1",
+                            class: "outline outline-gray-300 px-2 py-1",
                             "{cell}"
                         }
                     }
                     button {
-                        class: "outline outline-gray-300 p-1",
+                        class: "outline outline-gray-300 px-2 py-1",
                         onclick: move |_| {
                             (props.ondetail)(row[0].clone());
                         },
