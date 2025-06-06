@@ -46,15 +46,15 @@ pub fn Table(props: TableProps) -> Element {
                 oninput: move |event| search_text.set(event.value()),
             }
             button {
-                popovertarget: "customize",
-                class: "border border-gray-300 rounded p-1 bg-gray-100 hover:bg-gray-200 [anchor-name:--customize]",
+                class: "border border-gray-300 rounded p-1 bg-gray-100 hover:bg-gray-200 [anchor-name:--customize-button]",
+                popovertarget: "customize-popover",
                 "Customize Columns"
             }
             div {
-                id: "customize",
+                // The anchor positioning polyfill requires inset-auto for whatever reason
+                class: "border border-gray-300 rounded shadow-md p-2 absolute [position-anchor:--customize-button] [position-area:bottom_center] inset-auto",
+                id: "customize-popover",
                 popover: "auto",
-                // inset-auto is only required for the anchor positioning polyfill
-                class: "border border-gray-300 rounded shadow-md p-2 absolute [position-anchor:--customize] [position-area:bottom_center] inset-auto",
                 for header in props.columns.iter().cloned() {
                     label {
                         class: "flex items-center gap-2",
