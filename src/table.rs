@@ -1,10 +1,18 @@
 use dioxus::prelude::*;
 
-#[derive(Props, PartialEq, Clone)]
+#[derive(Props, Clone, PartialEq)]
 pub struct TableProps {
     pub columns: Vec<String>,
     pub data: Vec<Vec<String>>,
     pub ondetail: EventHandler<String>,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+enum DragState {
+    None,
+    Mousedown(usize),
+    Dragging(usize),
+    Dragover(usize, usize),
 }
 
 #[component]
@@ -12,6 +20,13 @@ pub fn Table(props: TableProps) -> Element {
     let columns = use_signal(|| props.columns.clone());
     let mut search_text = use_signal(|| "".to_string());
     let mut custom_columns = use_signal(|| props.columns.clone());
+    let mut drag_state = use_signal(|| DragState::None);
+    use_effect(move || {
+        // Run this effect when drag_state changes
+        drag_state();
+        // Rerun the anchor positioning polyfill
+        document::eval("if (window.CSSAnchorPositioning) window.CSSAnchorPositioning()");
+    });
     let filtered_data = use_memo(move || {
         let search_text = search_text.read().to_lowercase();
         props
@@ -95,14 +110,85 @@ pub fn Table(props: TableProps) -> Element {
                 div {
                     class: "outline outline-gray-300 px-2 py-1 bg-gray-100",
                 }
-                for header in custom_columns().iter() {
+                for (i, header) in custom_columns().iter().enumerate() {
                     div {
-                        class: "outline outline-gray-300 px-2 py-1 bg-gray-100 font-bold",
-                        "{header}"
+                        class: "outline outline-gray-300 bg-gray-100 flex",
+                        style: "anchor-name: --header-{i+1}",
+                        // To make only the handle draggable, we need to set the draggable attribute conditionally
+                        // https://stackoverflow.com/questions/26283661/drag-drop-with-handle
+                        draggable: drag_state() == DragState::Mousedown(i),
+                        ondragstart: move |_| {
+                            // Drag could also be initiated by selecting and dragging text in the header,
+                            // so we need to check that the drag was actually initiated by a mousedown on the handle
+                            if drag_state() == DragState::Mousedown(i) {
+                                drag_state.set(DragState::Dragging(i));
+                            }
+                        },
+                        ondragend: move |_| {
+                            drag_state.set(DragState::None);
+                        },
+                        span {
+                            class: "font-bold px-2 py-1",
+                            "{header}"
+                        }
+                        div {
+                            class: "ml-auto flex items-center px-1 cursor-grab",
+                            onmousedown: move |_| {
+                                drag_state.set(DragState::Mousedown(i));
+                            },
+                            onmouseup: move |_| {
+                                drag_state.set(DragState::None);
+                            },
+                            svg {
+                                "viewBox": "0 -960 960 960",
+                                width: "24",
+                                xmlns: "http://www.w3.org/2000/svg",
+                                height: "24",
+                                path { d: "M360-160q-33 0-56.5-23.5T280-240t23.5-56.5T360-320t56.5 23.5T440-240t-23.5 56.5T360-160m240 0q-33 0-56.5-23.5T520-240t23.5-56.5T600-320t56.5 23.5T680-240t-23.5 56.5T600-160M360-400q-33 0-56.5-23.5T280-480t23.5-56.5T360-560t56.5 23.5T440-480t-23.5 56.5T360-400m240 0q-33 0-56.5-23.5T520-480t23.5-56.5T600-560t56.5 23.5T680-480t-23.5 56.5T600-400M360-640q-33 0-56.5-23.5T280-720t23.5-56.5T360-800t56.5 23.5T440-720t-23.5 56.5T360-640m240 0q-33 0-56.5-23.5T520-720t23.5-56.5T600-800t56.5 23.5T680-720t-23.5 56.5T600-640" }
+                            }
+                        }
                     }
                 }
                 div {
                     class: "outline outline-gray-300 px-2 py-1 bg-gray-100"
+                }
+                // Dragover indicator
+                if let DragState::Dragover(_, i) = drag_state() {
+                    div {
+                        class: "absolute bg-blue-500 w-[3px]",
+                        style: "top: anchor(--header-1 top); bottom: anchor(--header-1 bottom);",
+                        style: if i == 0 { "left: anchor(--header-1 left); translate: -2px;" } else { "right: anchor(--header-{i} right); translate: 2px;" }
+                    }
+                }
+                // Create invisible drop zones between headers
+                if let DragState::Dragging(dragged_index) | DragState::Dragover(dragged_index, _) = drag_state() {
+                    for i in 0..custom_columns().len() + 1 {
+                        if i != dragged_index && i != dragged_index+1 {
+                            div {
+                                class: "absolute",
+                                style: "left: anchor(--header-{i} center, 0); right: anchor(--header-{i+1} center, 0); top: anchor(--header-1 -50%); bottom: anchor(--header-1 150%);",
+                                ondragover: move |event| {
+                                    event.prevent_default();
+                                    // Avoid unnecessary rerenders
+                                    if drag_state() != DragState::Dragover(dragged_index, i) {
+                                        drag_state.set(DragState::Dragover(dragged_index, i));
+                                    }
+                                },
+                                ondragleave: move |_| {
+                                    drag_state.set(DragState::Dragging(dragged_index));
+                                },
+                                ondrop: move |_| {
+                                    custom_columns.with_mut(|cols| {
+                                        // Remove the dragged column
+                                        let col = cols.remove(dragged_index);
+                                        // Insert at the new index (if dropping after, adjust for removal)
+                                        let insert_at = if i > dragged_index { i - 1 } else { i };
+                                        cols.insert(insert_at, col);
+                                    });
+                                }
+                            }
+                        }
+                    }
                 }
             }
             for row in filtered_data().into_iter() {
