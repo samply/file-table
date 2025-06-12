@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use itertools::Itertools;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct TableProps {
@@ -40,6 +41,8 @@ pub fn Table(props: TableProps) -> Element {
     let columns = use_signal(|| props.columns.clone());
     let mut search_text = use_signal(|| "".to_string());
     let mut custom_columns = use_signal(|| props.columns.iter().filter(|c| !c.hidden).map(|c| c.name.clone()).collect::<Vec<_>>());
+    let mut sort_by = use_signal(|| props.columns[0].name.clone());
+    let mut sort_ascending = use_signal(|| true);
     let mut drag_state = use_signal(|| DragState::None);
     use_effect(move || {
         // Run this effect when drag_state changes
@@ -49,15 +52,22 @@ pub fn Table(props: TableProps) -> Element {
     });
     let filtered_data = use_memo(move || {
         let search_text = search_text.read().to_lowercase();
-        props
+        let mut data = props
             .data
             .iter()
             .enumerate()
             .filter(|(_, row)| {
+                // Filter rows based on search text
                 row.iter()
                     .any(|cell| cell.to_lowercase().contains(&search_text))
             })
+            .sorted_by_key(|(_, row)| {
+                // Sort by the column specified in sort_by
+                let idx = columns.read().iter().position(|h| &h.name == &sort_by()).unwrap_or(0);
+                row[idx].to_lowercase()
+            })
             .map(|(id, row)| {
+                // Collect only the custom columns
                 (
                     id,
                     custom_columns
@@ -73,7 +83,11 @@ pub fn Table(props: TableProps) -> Element {
                         .collect::<Vec<_>>(),
                 )
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        if !sort_ascending() {
+            data.reverse();
+        }
+        data
     });
     rsx! {
         div {
@@ -163,8 +177,54 @@ pub fn Table(props: TableProps) -> Element {
                             class: "font-bold px-2 py-1",
                             "{header}"
                         }
+                        // Sort button
                         div {
-                            class: "ml-auto flex items-center px-1 cursor-grab",
+                            class: "ml-auto flex items-center px-1",
+                            onclick: {
+                                let header = header.clone();
+                                move |_| {
+                                    // Toggle sort order
+                                    if sort_by() == header.clone() {
+                                        sort_ascending.set(!sort_ascending());
+                                    } else {
+                                        sort_by.set(header.clone());
+                                        sort_ascending.set(true);
+                                    }
+                                }
+                            },
+                            svg {
+                                class: if sort_by() == header.clone() {
+                                    if sort_ascending() {
+                                        "text-blue-500"
+                                    } else {
+                                        "text-blue-500 rotate-180"
+                                    }
+                                } else {
+                                    ""
+                                },
+                                fill: "currentColor",
+                                width: "24",
+                                height: "24",
+                                xmlns: "http://www.w3.org/2000/svg",
+                                "viewBox": "0 -960 960 960",
+                                path { d: "M480-528 296-344l-56-56 240-240 240 240-56 56z" }
+                            }
+                        }
+                        // Filter button
+                        div {
+                            class: "flex items-center px-1",
+                            svg {
+                                fill: "currentColor",
+                                "viewBox": "0 -960 960 960",
+                                width: "24",
+                                xmlns: "http://www.w3.org/2000/svg",
+                                height: "24",
+                                path { d: "M440-160q-17 0-28.5-11.5T400-200v-240L168-736q-15-20-4.5-42t36.5-22h560q26 0 36.5 22t-4.5 42L560-440v240q0 17-11.5 28.5T520-160zm40-308 198-252H282zm0 0" }
+                            }                        
+                        }
+                        // Drag handle
+                        div {
+                            class: "flex items-center px-1 cursor-grab",
                             onmousedown: move |_| {
                                 drag_state.set(DragState::Mousedown(i));
                             },
