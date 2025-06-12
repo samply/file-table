@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct TableProps {
-    pub columns: Vec<String>,
+    pub columns: Vec<Column>,
     pub data: Vec<Vec<String>>,
     pub ondetail: EventHandler<usize>,
 }
@@ -15,11 +15,31 @@ enum DragState {
     Dragover(usize, usize),
 }
 
+#[derive(Clone, PartialEq, Debug)]
+pub struct Column {
+    name: String,
+    hidden: bool,
+}
+
+impl Column {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            hidden: false,
+        }
+    }
+
+    pub fn hidden(mut self) -> Self {
+        self.hidden = true;
+        self
+    }
+}
+
 #[component]
 pub fn Table(props: TableProps) -> Element {
     let columns = use_signal(|| props.columns.clone());
     let mut search_text = use_signal(|| "".to_string());
-    let mut custom_columns = use_signal(|| props.columns.clone());
+    let mut custom_columns = use_signal(|| props.columns.iter().filter(|c| !c.hidden).map(|c| c.name.clone()).collect::<Vec<_>>());
     let mut drag_state = use_signal(|| DragState::None);
     use_effect(move || {
         // Run this effect when drag_state changes
@@ -47,7 +67,7 @@ pub fn Table(props: TableProps) -> Element {
                             columns
                                 .read()
                                 .iter()
-                                .position(|h| h == header)
+                                .position(|h| &h.name == header)
                                 .and_then(|idx| row.get(idx).cloned())
                         })
                         .collect::<Vec<_>>(),
@@ -65,7 +85,7 @@ pub fn Table(props: TableProps) -> Element {
                 oninput: move |event| search_text.set(event.value()),
             }
             button {
-                class: "border border-gray-300 rounded p-1 bg-gray-100 hover:bg-gray-200 [anchor-name:--customize-button]",
+                class: "border border-gray-300 rounded px-2 py-1 bg-gray-100 hover:bg-gray-200 [anchor-name:--customize-button]",
                 popovertarget: "customize-popover",
                 "Customize Columns"
             }
@@ -79,29 +99,40 @@ pub fn Table(props: TableProps) -> Element {
                         class: "flex items-center gap-2",
                         input {
                             r#type: "checkbox",
-                            checked: custom_columns().contains(&header),
+                            checked: custom_columns().contains(&header.name),
                             onchange: move |_| {
                                 custom_columns.with_mut(|vec| {
-                                    if vec.contains(&header) {
-                                        vec.retain(|h| h != &header);
+                                    if vec.contains(&header.name) {
+                                        vec.retain(|h| h != &header.name);
                                     } else {
                                         // Insert header in the correct order as in props.columns
-                                        let pos = columns.read().iter().position(|h| h == &header).unwrap();
+                                        let pos = columns.read().iter().position(|h| h.name == header.name).unwrap();
                                         let mut insert_at = vec.len();
                                         for (i, h) in vec.iter().enumerate() {
-                                            if let Some(col_pos) = columns.read().iter().position(|c| c == h) {
+                                            if let Some(col_pos) = columns.read().iter().position(|c| &c.name == h) {
                                                 if col_pos > pos {
                                                     insert_at = i;
                                                     break;
                                                 }
                                             }
                                         }
-                                        vec.insert(insert_at, header.clone());
+                                        vec.insert(insert_at, header.name.clone());
                                     }
                                 });
                             },
                         }
-                        span { "{header}" }
+                        span { "{header.name}" }
+                    }
+                }
+                // Reset columns button
+                div {
+                    class: "flex justify-end mt-2",
+                    button {
+                        class: "border border-gray-300 rounded px-2 py-1 bg-gray-100 hover:bg-gray-200 text-sm",
+                        onclick: move |_| {
+                            custom_columns.set(props.columns.iter().filter(|c| !c.hidden).map(|c| c.name.clone()).collect());
+                        },
+                        "Reset Columns"
                     }
                 }
             }

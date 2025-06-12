@@ -46,8 +46,8 @@ fn PatientTable() -> Element {
     match &*patients.read_unchecked() {
         Some(Ok(patients)) => rsx! {
             table::Table {
-                columns: vec!["ID".to_string(), /*"Name".to_string(),*/ "Gender".to_string(), "Birth Date".to_string(), "Deceased".to_string(), "Address".to_string()],
-                data: patients.iter().map(|p| vec![p.id(), /*p.name(),*/ p.gender(), p.birth_date(), p.deceased(), p.address()]).collect(),
+                columns: vec![table::Column::new("ID").hidden(), table::Column::new("Gender"), table::Column::new("Birth Date"), table::Column::new("Deceased"), table::Column::new("Address")],
+                data: patients.iter().map(|p| vec![p.id(), p.gender(), p.birth_date(), p.deceased(), p.address()]).collect(),
                 ondetail: {
                     let patients = patients.clone();
                     move |id: usize| {
