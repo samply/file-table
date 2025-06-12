@@ -125,15 +125,12 @@ pub fn Table(props: TableProps) -> Element {
                     }
                 }
                 // Reset columns button
-                div {
-                    class: "flex justify-end mt-2",
-                    button {
-                        class: "border border-gray-300 rounded px-2 py-1 bg-gray-100 hover:bg-gray-200 text-sm",
-                        onclick: move |_| {
-                            custom_columns.set(props.columns.iter().filter(|c| !c.hidden).map(|c| c.name.clone()).collect());
-                        },
-                        "Reset Columns"
-                    }
+                button {
+                    class: "border border-gray-300 rounded px-2 py-1 mt-2 bg-gray-100 hover:bg-gray-200 text-sm",
+                    onclick: move |_| {
+                        custom_columns.set(props.columns.iter().filter(|c| !c.hidden).map(|c| c.name.clone()).collect());
+                    },
+                    "Reset Columns"
                 }
             }
         }
