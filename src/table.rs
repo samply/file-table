@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 pub struct TableProps {
     pub columns: Vec<String>,
     pub data: Vec<Vec<String>>,
-    pub ondetail: EventHandler<String>,
+    pub ondetail: EventHandler<usize>,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -32,22 +32,26 @@ pub fn Table(props: TableProps) -> Element {
         props
             .data
             .iter()
-            .filter(|row| {
+            .enumerate()
+            .filter(|(_, row)| {
                 row.iter()
                     .any(|cell| cell.to_lowercase().contains(&search_text))
             })
-            .map(|row| {
-                custom_columns
-                    .read()
-                    .iter()
-                    .filter_map(|header| {
-                        columns
-                            .read()
-                            .iter()
-                            .position(|h| h == header)
-                            .and_then(|idx| row.get(idx).cloned())
-                    })
-                    .collect::<Vec<_>>()
+            .map(|(id, row)| {
+                (
+                    id,
+                    custom_columns
+                        .read()
+                        .iter()
+                        .filter_map(|header| {
+                            columns
+                                .read()
+                                .iter()
+                                .position(|h| h == header)
+                                .and_then(|idx| row.get(idx).cloned())
+                        })
+                        .collect::<Vec<_>>(),
+                )
             })
             .collect::<Vec<_>>()
     });
@@ -191,7 +195,7 @@ pub fn Table(props: TableProps) -> Element {
                     }
                 }
             }
-            for row in filtered_data().into_iter() {
+            for (id, row) in filtered_data().into_iter() {
                 div {
                     class: "grid grid-cols-subgrid col-span-full",
                     label {
@@ -209,7 +213,7 @@ pub fn Table(props: TableProps) -> Element {
                     button {
                         class: "outline outline-gray-300 px-2 py-1",
                         onclick: move |_| {
-                            (props.ondetail)(row[0].clone());
+                            (props.ondetail)(id);
                         },
                         svg {
                             "viewBox": "0 0 24 24",

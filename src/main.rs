@@ -48,9 +48,13 @@ fn PatientTable() -> Element {
             table::Table {
                 columns: vec!["ID".to_string(), /*"Name".to_string(),*/ "Gender".to_string(), "Birth Date".to_string(), "Deceased".to_string(), "Address".to_string()],
                 data: patients.iter().map(|p| vec![p.id(), /*p.name(),*/ p.gender(), p.birth_date(), p.deceased(), p.address()]).collect(),
-                ondetail: move |id| {
-                    // Navigate to the patient view when a row is clicked
-                    navigator().push(Route::PatientView { id });
+                ondetail: {
+                    let patients = patients.clone();
+                    move |id: usize| {
+                        // Navigate to the patient view when a row is clicked
+                        let id = patients[id].id();
+                        navigator().push(Route::PatientView { id });
+                    }
                 }
             }
         },
