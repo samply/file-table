@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use dioxus::prelude::*;
 use itertools::Itertools;
 
@@ -19,6 +21,7 @@ enum DragState {
 #[derive(Clone, PartialEq, Debug)]
 pub struct Column {
     name: String,
+    categorical: bool,
     hidden: bool,
 }
 
@@ -26,8 +29,14 @@ impl Column {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
+            categorical: false,
             hidden: false,
         }
+    }
+
+    pub fn categorical(mut self) -> Self {
+        self.categorical = true;
+        self
     }
 
     pub fn hidden(mut self) -> Self {
@@ -43,6 +52,8 @@ pub fn Table(props: TableProps) -> Element {
     let mut custom_columns = use_signal(|| props.columns.iter().filter(|c| !c.hidden).map(|c| c.name.clone()).collect::<Vec<_>>());
     let mut sort_by = use_signal(|| props.columns[0].name.clone());
     let mut sort_ascending = use_signal(|| true);
+    let mut column_search_text = use_signal(|| vec![String::new(); props.columns.len()]);
+    let mut column_category_filter = use_signal(|| vec![HashSet::<String>::new(); props.columns.len()]);
     let mut drag_state = use_signal(|| DragState::None);
     use_effect(move || {
         // Run this effect when drag_state changes
@@ -50,21 +61,33 @@ pub fn Table(props: TableProps) -> Element {
         // Rerun the anchor positioning polyfill
         document::eval("if (window.CSSAnchorPositioning) window.CSSAnchorPositioning()");
     });
+    let cloned_data = props.data.clone();
     let filtered_data = use_memo(move || {
-        let search_text = search_text.read().to_lowercase();
-        let mut data = props
-            .data
+        let mut data = cloned_data
             .iter()
             .enumerate()
             .filter(|(_, row)| {
                 // Filter rows based on search text
+                let search_text = search_text.read().to_lowercase();
                 row.iter()
                     .any(|cell| cell.to_lowercase().contains(&search_text))
+            })
+            .filter(|(_, row)| {
+                // Filter rows based on column-specific search text
+                row.iter()
+                    .enumerate()
+                    .all(|(i, cell)| {
+                        let filter_text = column_search_text.read().get(i).unwrap_or(&String::new()).to_lowercase();
+                        let category_filter = column_category_filter.get(i).unwrap();
+                        (filter_text.is_empty() && category_filter.is_empty()) ||
+                        (!filter_text.is_empty() && cell.to_lowercase().contains(&filter_text)) ||
+                        (!category_filter.is_empty() && category_filter.contains(cell))
+                    })
             })
             .sorted_by_key(|(_, row)| {
                 // Sort by the column specified in sort_by
                 let idx = columns.read().iter().position(|h| &h.name == &sort_by()).unwrap_or(0);
-                row[idx].to_lowercase()
+                row.get(idx).cloned().unwrap_or_default()
             })
             .map(|(id, row)| {
                 // Collect only the custom columns
@@ -110,6 +133,7 @@ pub fn Table(props: TableProps) -> Element {
                 popover: "auto",
                 for header in props.columns.iter().cloned() {
                     label {
+                        key: "{header.name}",
                         class: "flex items-center gap-2",
                         input {
                             r#type: "checkbox",
@@ -156,8 +180,9 @@ pub fn Table(props: TableProps) -> Element {
                 div {
                     class: "outline outline-gray-300 px-2 py-1 bg-gray-100",
                 }
-                for (i, header) in custom_columns().iter().enumerate() {
+                for (i, idx, header) in custom_columns().iter().enumerate().map(|(i, header)| (i, columns().iter().position(|c| &c.name == header).unwrap(), header)) {
                     div {
+                        key: "{header}",
                         class: "outline outline-gray-300 bg-gray-100 flex",
                         style: "anchor-name: --header-{i+1}",
                         // To make only the handle draggable, we need to set the draggable attribute conditionally
@@ -211,8 +236,10 @@ pub fn Table(props: TableProps) -> Element {
                             }
                         }
                         // Filter button
-                        div {
-                            class: "flex items-center px-1",
+                        button {
+                            class: "flex items-center px-1 [anchor-name:filter-popover-{i}]",
+                            class: if !column_search_text()[idx].is_empty() || !column_category_filter()[idx].is_empty() { "text-blue-500" },
+                            popovertarget: "filter-popover-{i}",
                             svg {
                                 fill: "currentColor",
                                 "viewBox": "0 -960 960 960",
@@ -220,7 +247,71 @@ pub fn Table(props: TableProps) -> Element {
                                 xmlns: "http://www.w3.org/2000/svg",
                                 height: "24",
                                 path { d: "M440-160q-17 0-28.5-11.5T400-200v-240L168-736q-15-20-4.5-42t36.5-22h560q26 0 36.5 22t-4.5 42L560-440v240q0 17-11.5 28.5T520-160zm40-308 198-252H282zm0 0" }
-                            }                        
+                            }
+                        }
+                        div {
+                            // The anchor positioning polyfill requires inset-auto for whatever reason
+                            class: "border border-gray-300 rounded shadow-md p-2 absolute min-w-50 [position-anchor:filter-popover-{i}] [position-area:bottom_center] inset-auto",
+                            id: "filter-popover-{i}",
+                            popover: "auto",
+                            input {
+                                class: "border border-gray-300 rounded p-1 w-full",
+                                placeholder: "Filter by {header}",
+                                value: column_search_text()[idx].clone(),
+                                oninput: move |event: Event<FormData>| {
+                                    // Update the filter for this column
+                                    column_search_text.with_mut(|vec| {
+                                        vec[idx] = event.value();
+                                    });
+                                },
+                            }
+                            // Checkboxes for categorical filters
+                            if columns().iter().find(|c| &c.name == header).unwrap().categorical {
+                                div {
+                                    class: "mt-2",
+                                    for value in props.data.iter()
+                                        .filter_map(|row| row.get(columns().iter().position(|c| &c.name == header).unwrap()))
+                                        .unique()
+                                        .sorted()
+                                    {
+                                        label {
+                                            key: "{value}",
+                                            class: "flex items-center gap-2",
+                                            input {
+                                                r#type: "checkbox",
+                                                checked: column_category_filter.get(idx).unwrap().contains(value),
+                                                onchange: {
+                                                    let value = value.clone();
+                                                    move |_| {
+                                                        column_category_filter.with_mut(|filters| {
+                                                            let filter = filters.get_mut(idx).unwrap();
+                                                            if filter.contains(&value) {
+                                                                filter.remove(&value);
+                                                            } else {
+                                                                filter.insert(value.clone());
+                                                            }
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            span { "{value}" }
+                                        }
+                                    }
+                                }
+                            }
+                            // Reset filter button
+                            button {
+                                class: "border border-gray-300 rounded px-2 py-1 mt-2 bg-gray-100 hover:bg-gray-200 text-sm",
+                                onclick: move |_| {
+                                    column_search_text.with_mut(|vec| {
+                                        vec[idx] = String::new();
+                                    });
+                                    column_category_filter.with_mut(|vec| {
+                                        vec[idx] = HashSet::new();
+                                    });
+                                },
+                                "Reset Filter"
+                            }
                         }
                         // Drag handle
                         div {
