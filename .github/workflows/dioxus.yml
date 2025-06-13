@@ -1,4 +1,4 @@
-name: Rust
+name: Dioxus
 
 on:
   push:
@@ -16,9 +16,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Install Dioxus CLI
+      run: cargo binstall dioxus-cli
     - name: Create stub tailwind.css
       run:  touch assets/tailwind.css
+    - name: Check cargo fmt
+      run: cargo fmt --check
+    - name: Check dioxus formatting
+      run: dx fmt --check
     - name: Build
-      run: cargo build --verbose
+      run: dx build
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test
