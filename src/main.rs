@@ -48,16 +48,24 @@ fn PatientTable() -> Element {
     match &*patients.read_unchecked() {
         Some(Ok(patients)) => rsx! {
             table::Table {
-                columns: vec![table::Column::new("ID").hidden(), table::Column::new("Gender").categorical(), table::Column::new("Birth Date"), table::Column::new("Deceased").categorical(), table::Column::new("Address")],
-                data: patients.iter().map(|p| vec![p.id(), p.gender(), p.birth_date(), p.deceased(), p.address()]).collect(),
+                columns: vec![
+                    table::Column::new("ID").hidden(),
+                    table::Column::new("Gender").categorical(),
+                    table::Column::new("Birth Date"),
+                    table::Column::new("Deceased").categorical(),
+                    table::Column::new("Address"),
+                ],
+                data: patients
+                    .iter()
+                    .map(|p| vec![p.id(), p.gender(), p.birth_date(), p.deceased(), p.address()])
+                    .collect(),
                 ondetail: {
                     let patients = patients.clone();
                     move |id: usize| {
-                        // Navigate to the patient view when a row is clicked
                         let id = patients[id].id();
                         navigator().push(Route::PatientView { id });
                     }
-                }
+                },
             }
         },
         Some(Err(e)) => rsx! { "Error loading patients: {e:#}" },
@@ -84,8 +92,7 @@ fn PatientView(id: String) -> Element {
     let patient_details = use_server_future(move || server::get_patient_details(id()))?;
     match &*patient_details.read_unchecked() {
         Some(Ok((patient, bundle))) => rsx! {
-            div {
-                class: "m-4",
+            div { class: "m-4",
                 h2 { class: "text-xl font-bold my-3", "Patient Details" }
                 // p { "Name: {patient.name()}" }
                 p { "Gender: {patient.gender()}" }
@@ -111,17 +118,20 @@ fn PatientView(id: String) -> Element {
                 //     "4 events are not shown because they are missing a timestamp."
                 // }
                 ol { class: "relative border-s border-gray-300",
-                    for entry in bundle.entry.iter().filter(|e| e.resource.timeline_event().is_some()).sorted_by_key(|e| e.resource.timeline_event().unwrap().timestamp()) {
+                    for entry in bundle
+                        .entry
+                        .iter()
+                        .filter(|e| e.resource.timeline_event().is_some())
+                        .sorted_by_key(|e| e.resource.timeline_event().unwrap().timestamp())
+                    {
                         li { class: "mb-5 ms-4",
                             div { class: "absolute w-3 h-3 bg-gray-300 rounded-full mt-1.5 -start-1.5 border border-white" }
                             match entry.resource {
                                 fhir::Resource::Encounter(ref encounter) => {
                                     rsx! {
-                                        details {
-                                            open: false,
+                                        details { open: false,
                                             summary {
-                                                div {
-                                                    class: "inline-flex items-center gap-1.5",
+                                                div { class: "inline-flex items-center gap-1.5",
                                                     h3 { class: "font-bold", "Encounter" }
                                                     OptionalChip { chip: encounter.status_chip() }
                                                 }
@@ -139,11 +149,9 @@ fn PatientView(id: String) -> Element {
                                 }
                                 fhir::Resource::Condition(ref condition) => {
                                     rsx! {
-                                        details {
-                                            open: true,
+                                        details { open: true,
                                             summary {
-                                                div {
-                                                    class: "inline-flex items-center gap-1.5",
+                                                div { class: "inline-flex items-center gap-1.5",
                                                     h3 { class: "font-bold", "Condition" }
                                                     OptionalChip { chip: condition.clinical_status_chip() }
                                                     OptionalChip { chip: condition.verification_status_chip() }
@@ -155,17 +163,15 @@ fn PatientView(id: String) -> Element {
                                             p { "Code: {condition.code()}" }
                                             p { "Body site: {condition.body_site()}" }
                                             p { "Onset: {condition.onset_start()}" }
-                                            // p { "Notes: {condition.notes()}" }
+                                        // p { "Notes: {condition.notes()}" }
                                         }
                                     }
                                 }
                                 fhir::Resource::Procedure(ref procedure) => {
                                     rsx! {
-                                        details {
-                                            open: true,
+                                        details { open: true,
                                             summary {
-                                                div {
-                                                    class: "inline-flex items-center gap-1.5",
+                                                div { class: "inline-flex items-center gap-1.5",
                                                     h3 { class: "font-bold", "Procedure" }
                                                     OptionalChip { chip: procedure.status_chip() }
                                                 }
@@ -176,11 +182,11 @@ fn PatientView(id: String) -> Element {
                                             p { "Category: {procedure.category()}" }
                                             p { "Code: {procedure.code()}" }
                                             p { "Body Site: {procedure.body_site()}" }
-                                            // p { "Notes: {procedure.note()}" }
+                                        // p { "Notes: {procedure.note()}" }
                                         }
                                     }
                                 }
-                                _ => unreachable!()
+                                _ => unreachable!(),
                             }
                         }
                     }
