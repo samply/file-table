@@ -27,3 +27,28 @@ Run the following command in the root of your project to start developing:
 ```bash
 dx serve
 ```
+
+### Pre-commit hook
+
+I'm currently trialing this `.git/hooks/pre-commit` hook:
+
+```bash
+#!/bin/bash
+
+# Save unstaged changes
+git diff > /tmp/unstaged_changes.patch
+git restore .
+
+# Format only staged files
+git diff --name-only --cached | xargs cargo fmt --
+git diff --name-only --cached | xargs -n 1 dx fmt --file
+
+# Restage only the originally staged files
+git diff --name-only --cached | xargs git add
+
+# Restore unstaged changes
+if ! git apply --allow-empty /tmp/unstaged_changes.patch; then
+    echo "Pre-commit hook failed to restore your unstaged changes. You can find your changes at /tmp/unstaged_changes.patch"
+    exit 1
+fi
+```
