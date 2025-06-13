@@ -347,34 +347,37 @@ pub fn Table(props: TableProps) -> Element {
                     }
                 }
                 // Create invisible drop zones between headers
-                if let DragState::Dragging(dragged_index) | DragState::Dragover(dragged_index, _) = drag_state() {
-                    for i in 0..custom_columns().len() + 1 {
-                        if i != dragged_index && i != dragged_index+1 {
-                            div {
-                                class: "absolute",
-                                style: "left: anchor(--header-{i} center, 0); right: anchor(--header-{i+1} center, 0); top: anchor(--header-1 -50%); bottom: anchor(--header-1 150%);",
-                                ondragover: move |event| {
-                                    event.prevent_default();
-                                    // Avoid unnecessary rerenders
-                                    if drag_state() != DragState::Dragover(dragged_index, i) {
-                                        drag_state.set(DragState::Dragover(dragged_index, i));
+                match drag_state() {
+                    DragState::Dragging(dragged_index) | DragState::Dragover(dragged_index, _) => rsx!{
+                        for i in 0..custom_columns().len() + 1 {
+                            if i != dragged_index && i != dragged_index+1 {
+                                div {
+                                    class: "absolute",
+                                    style: "left: anchor(--header-{i} center, 0); right: anchor(--header-{i+1} center, 0); top: anchor(--header-1 -50%); bottom: anchor(--header-1 150%);",
+                                    ondragover: move |event| {
+                                        event.prevent_default();
+                                        // Avoid unnecessary rerenders
+                                        if drag_state() != DragState::Dragover(dragged_index, i) {
+                                            drag_state.set(DragState::Dragover(dragged_index, i));
+                                        }
+                                    },
+                                    ondragleave: move |_| {
+                                        drag_state.set(DragState::Dragging(dragged_index));
+                                    },
+                                    ondrop: move |_| {
+                                        custom_columns.with_mut(|cols| {
+                                            // Remove the dragged column
+                                            let col = cols.remove(dragged_index);
+                                            // Insert at the new index (if dropping after, adjust for removal)
+                                            let insert_at = if i > dragged_index { i - 1 } else { i };
+                                            cols.insert(insert_at, col);
+                                        });
                                     }
-                                },
-                                ondragleave: move |_| {
-                                    drag_state.set(DragState::Dragging(dragged_index));
-                                },
-                                ondrop: move |_| {
-                                    custom_columns.with_mut(|cols| {
-                                        // Remove the dragged column
-                                        let col = cols.remove(dragged_index);
-                                        // Insert at the new index (if dropping after, adjust for removal)
-                                        let insert_at = if i > dragged_index { i - 1 } else { i };
-                                        cols.insert(insert_at, col);
-                                    });
                                 }
                             }
                         }
-                    }
+                    },
+                    _ => rsx!{}
                 }
             }
             for (id, row) in filtered_data().into_iter() {
