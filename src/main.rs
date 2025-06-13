@@ -32,7 +32,9 @@ fn main() {
 #[component]
 fn App() -> Element {
     // Load polyfill for CSS anchor positioning if needed (https://github.com/oddbird/css-anchor-positioning)
-    document::eval("if (!('anchorName' in document.documentElement.style)) import('https://unpkg.com/@oddbird/css-anchor-positioning/dist/css-anchor-positioning-fn.js').then(mod => {window.CSSAnchorPositioning = mod.default; window.CSSAnchorPositioning()});");
+    document::eval(
+        "if (!('anchorName' in document.documentElement.style)) import('https://unpkg.com/@oddbird/css-anchor-positioning/dist/css-anchor-positioning-fn.js').then(mod => {window.CSSAnchorPositioning = mod.default; window.CSSAnchorPositioning()});",
+    );
 
     rsx! {
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }

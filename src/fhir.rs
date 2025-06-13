@@ -246,6 +246,7 @@ impl Encounter {
     }
 
     /// http://fhir.de/ValueSet/EncounterStatusDe
+    #[rustfmt::skip]
     pub fn status_chip(&self) -> Option<Chip> {
         match self.status.as_str() {
             "planned" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Planned", "The Encounter has not yet started.")),
@@ -333,6 +334,7 @@ impl Condition {
     }
 
     /// http://hl7.org/fhir/ValueSet/condition-clinical
+    #[rustfmt::skip]
     pub fn clinical_status_chip(&self) -> Option<Chip> {
         match self.clinical_status.as_ref()?.code_in_system("http://terminology.hl7.org/CodeSystem/condition-clinical")?.as_str() {
             "active" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Active", "The subject is currently experiencing the symptoms of the condition or there is evidence of the condition.")),
@@ -353,6 +355,7 @@ impl Condition {
     }
 
     /// http://hl7.org/fhir/ValueSet/condition-ver-status
+    #[rustfmt::skip]
     pub fn verification_status_chip(&self) -> Option<Chip> {
         match self.verification_status.as_ref()?.code_in_system("http://terminology.hl7.org/CodeSystem/condition-ver-status")?.as_str() {
             "unconfirmed" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Unconfirmed", "There is not sufficient diagnostic and/or clinical evidence to treat this as a confirmed condition.")),
@@ -430,6 +433,7 @@ impl Procedure {
     }
 
     /// http://hl7.org/fhir/ValueSet/event-status
+    #[rustfmt::skip]
     pub fn status_chip(&self) -> Option<Chip> {
         match self.status.as_str() {
             "preparation" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Preparation", "The core event has not started yet, but some staging activities have begun (e.g. surgical suite preparation). Preparation stages may be tracked for billing purposes.")),

@@ -49,11 +49,19 @@ impl Column {
 pub fn Table(props: TableProps) -> Element {
     let columns = use_signal(|| props.columns.clone());
     let mut search_text = use_signal(|| "".to_string());
-    let mut custom_columns = use_signal(|| props.columns.iter().filter(|c| !c.hidden).map(|c| c.name.clone()).collect::<Vec<_>>());
+    let mut custom_columns = use_signal(|| {
+        props
+            .columns
+            .iter()
+            .filter(|c| !c.hidden)
+            .map(|c| c.name.clone())
+            .collect::<Vec<_>>()
+    });
     let mut sort_by = use_signal(|| props.columns[0].name.clone());
     let mut sort_ascending = use_signal(|| true);
     let mut column_search_text = use_signal(|| vec![String::new(); props.columns.len()]);
-    let mut column_category_filter = use_signal(|| vec![HashSet::<String>::new(); props.columns.len()]);
+    let mut column_category_filter =
+        use_signal(|| vec![HashSet::<String>::new(); props.columns.len()]);
     let mut drag_state = use_signal(|| DragState::None);
     use_effect(move || {
         // Run this effect when drag_state changes
@@ -74,19 +82,25 @@ pub fn Table(props: TableProps) -> Element {
             })
             .filter(|(_, row)| {
                 // Filter rows based on column-specific search text
-                row.iter()
-                    .enumerate()
-                    .all(|(i, cell)| {
-                        let filter_text = column_search_text.read().get(i).unwrap_or(&String::new()).to_lowercase();
-                        let category_filter = column_category_filter.get(i).unwrap();
-                        (filter_text.is_empty() && category_filter.is_empty()) ||
-                        (!filter_text.is_empty() && cell.to_lowercase().contains(&filter_text)) ||
-                        (!category_filter.is_empty() && category_filter.contains(cell))
-                    })
+                row.iter().enumerate().all(|(i, cell)| {
+                    let filter_text = column_search_text
+                        .read()
+                        .get(i)
+                        .unwrap_or(&String::new())
+                        .to_lowercase();
+                    let category_filter = column_category_filter.get(i).unwrap();
+                    (filter_text.is_empty() && category_filter.is_empty())
+                        || (!filter_text.is_empty() && cell.to_lowercase().contains(&filter_text))
+                        || (!category_filter.is_empty() && category_filter.contains(cell))
+                })
             })
             .sorted_by_key(|(_, row)| {
                 // Sort by the column specified in sort_by
-                let idx = columns.read().iter().position(|h| &h.name == &sort_by()).unwrap_or(0);
+                let idx = columns
+                    .read()
+                    .iter()
+                    .position(|h| &h.name == &sort_by())
+                    .unwrap_or(0);
                 row.get(idx).cloned().unwrap_or_default()
             })
             .map(|(id, row)| {
