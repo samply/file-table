@@ -138,25 +138,28 @@ pub fn Table(props: TableProps) -> Element {
                         input {
                             r#type: "checkbox",
                             checked: custom_columns().contains(&header.name),
-                            onchange: move |_| {
-                                custom_columns.with_mut(|vec| {
-                                    if vec.contains(&header.name) {
-                                        vec.retain(|h| h != &header.name);
-                                    } else {
-                                        // Insert header in the correct order as in props.columns
-                                        let pos = columns.read().iter().position(|h| h.name == header.name).unwrap();
-                                        let mut insert_at = vec.len();
-                                        for (i, h) in vec.iter().enumerate() {
-                                            if let Some(col_pos) = columns.read().iter().position(|c| &c.name == h) {
-                                                if col_pos > pos {
-                                                    insert_at = i;
-                                                    break;
+                            onchange: {
+                                let header = header.clone();
+                                move |_| {
+                                    custom_columns.with_mut(|vec| {
+                                        if vec.contains(&header.name) {
+                                            vec.retain(|h| h != &header.name);
+                                        } else {
+                                            // Insert header in the correct order as in props.columns
+                                            let pos = columns.read().iter().position(|h| h.name == header.name).unwrap();
+                                            let mut insert_at = vec.len();
+                                            for (i, h) in vec.iter().enumerate() {
+                                                if let Some(col_pos) = columns.read().iter().position(|c| &c.name == h) {
+                                                    if col_pos > pos {
+                                                        insert_at = i;
+                                                        break;
+                                                    }
                                                 }
                                             }
+                                            vec.insert(insert_at, header.name.clone());
                                         }
-                                        vec.insert(insert_at, header.name.clone());
-                                    }
-                                });
+                                    });
+                                }
                             },
                         }
                         span { "{header.name}" }
