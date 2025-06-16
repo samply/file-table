@@ -235,7 +235,7 @@ pub fn Table(props: TableProps) -> Element {
                         },
                         span { class: "font-bold px-2 py-1", "{header}" }
                         // Sort button
-                        div {
+                        button {
                             class: "ml-auto flex items-center px-1",
                             onclick: {
                                 let header = header.clone();
