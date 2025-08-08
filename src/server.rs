@@ -1,10 +1,13 @@
 #![cfg(feature = "server")]
 
 #[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     pub fhir_base_url: String,
     pub fhir_username: Option<String>,
     pub fhir_password: Option<String>,
+    #[serde(default)]
+    pub accept_invalid_certs: bool,
 }
 
 static CONFIG: std::sync::OnceLock<Config> = std::sync::OnceLock::new();

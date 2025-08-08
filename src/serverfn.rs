@@ -9,7 +9,9 @@ pub trait RequestBuilderExt {
 #[server]
 pub async fn get_patients() -> Result<Vec<fhir::Patient>, ServerFnError> {
     let url = format!("{}/Patient", server::config().fhir_base_url);
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(server::config().accept_invalid_certs)
+        .build()?;
     let bundle = client
         .get(&url)
         .with_auth()
@@ -35,7 +37,9 @@ pub async fn get_patient_details(
         server::config().fhir_base_url,
         id
     );
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(server::config().accept_invalid_certs)
+        .build()?;
     let bundle = client
         .get(&url)
         .with_auth()
