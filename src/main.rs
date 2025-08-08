@@ -4,6 +4,7 @@ use itertools::Itertools;
 
 mod fhir;
 mod server;
+mod serverfn;
 mod table;
 
 #[derive(Debug, Clone, Routable, PartialEq)]
@@ -44,7 +45,7 @@ fn App() -> Element {
 
 #[component]
 fn PatientTable() -> Element {
-    let patients = use_server_future(|| server::get_patients())?;
+    let patients = use_server_future(|| serverfn::get_patients())?;
     match &*patients.read_unchecked() {
         Some(Ok(patients)) => rsx! {
             table::Table {
@@ -89,7 +90,7 @@ fn OptionalChip(chip: Option<fhir::Chip>) -> Element {
 #[component]
 fn PatientView(id: String) -> Element {
     let id = use_signal(|| id);
-    let patient_details = use_server_future(move || server::get_patient_details(id()))?;
+    let patient_details = use_server_future(move || serverfn::get_patient_details(id()))?;
     match &*patient_details.read_unchecked() {
         Some(Ok((patient, bundle))) => rsx! {
             div { class: "m-4",
