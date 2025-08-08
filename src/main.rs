@@ -187,6 +187,26 @@ fn PatientView(id: String) -> Element {
                                         }
                                     }
                                 }
+                                fhir::Resource::Observation(ref observation) => {
+                                    rsx! {
+                                        details { open: true,
+                                            summary {
+                                                div { class: "inline-flex items-center gap-1.5",
+                                                    h3 { class: "font-bold", "Observation" }
+                                                    OptionalChip { chip: observation.status_chip() }
+                                                }
+                                            }
+                                            time { class: "my-0.5 text-sm font-normal leading-none text-gray-600",
+                                                "{observation.formatted_timestamp()}"
+                                            }
+                                            p { "Identifier: {observation.identifier()}" }
+                                            p { "Category: {observation.category()}" }
+                                            p { "Code: {observation.code()}" }
+                                            p { "Value: {observation.value()}" }
+                                            p { "Interpretation: {observation.interpretation()}" }
+                                        }
+                                    }
+                                }
                                 _ => unreachable!(),
                             }
                         }

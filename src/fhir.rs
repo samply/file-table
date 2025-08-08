@@ -487,6 +487,131 @@ impl TimelineEvent for Procedure {
     }
 }
 
+/// http://hl7.org/fhir/StructureDefinition/Quantity
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Quantity {
+    value: Option<f64>,
+    comparator: Option<String>,
+    unit: Option<String>,
+    system: Option<String>,
+    code: Option<String>,
+}
+
+/// Quantity where the `comparator` is not used.
+type SimpleQuantity = Quantity;
+
+impl Quantity {
+    pub fn try_to_string(&self) -> Option<String> {
+        self.value.map(|value| {
+            let value_and_unit = if let Some(unit) = &self.unit {
+                format!("{value} {unit}")
+            } else {
+                value.to_string()
+            };
+            if let Some(comparator) = &self.comparator {
+                format!("{comparator} {value_and_unit}")
+            } else {
+                value_and_unit
+            }
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ObservationReferenceRange {
+    low: Option<SimpleQuantity>,
+    high: Option<SimpleQuantity>,
+    r#type: Option<CodeableConcept>,
+}
+
+/// https://www.medizininformatik-initiative.de/fhir/core/modul-labor/StructureDefinition/ObservationLab
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Observation {
+    id: Option<String>,
+    identifier: Vec<Identifier>,
+    status: String,
+    category: Vec<CodeableConcept>,
+    code: CodeableConcept,
+    encounter: Option<Reference>,
+    effective_date_time: jiff::Timestamp,
+    issued: Option<jiff::Timestamp>,
+    value_quantity: Option<Quantity>,
+    data_absent_reason: Option<CodeableConcept>,
+    interpretation: Option<Vec<CodeableConcept>>,
+    note: Option<Vec<Annotation>>,
+    method: Option<CodeableConcept>,
+    reference_range: Option<Vec<ObservationReferenceRange>>,
+}
+
+impl Observation {
+    pub fn id(&self) -> String {
+        self.id.clone().unwrap_or_default()
+    }
+
+    pub fn identifier(&self) -> String {
+        self.identifier
+            .iter()
+            .find(|id| {
+                id.r#type.as_ref().and_then(|r#type| {
+                    r#type.code_in_system("http://terminology.hl7.org/CodeSystem/v2-0203")
+                }) == Some("OBI".into())
+            })
+            .and_then(|id| id.value.clone())
+            .unwrap_or_default()
+    }
+
+    /// http://hl7.org/fhir/ValueSet/observation-status
+    #[rustfmt::skip]
+    pub fn status_chip(&self) -> Option<Chip> {
+        match self.status.as_str() {
+            "registered" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Registered", "The existence of the observation is registered, but there is no result yet available.")),
+            "preliminary" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Preliminary", "This is an initial or interim observation: data may be incomplete or unverified.")),
+            "final" => Some(Chip::new("bg-green-100 border-green-500", "Final", "The observation is complete and there are no further actions needed. Additional information such as 'released', 'signed', etc would be represented using Provenance.")),
+            "amended" => Some(Chip::new("bg-purple-100 border-purple-500", "Amended", "Subsequent to being Final, the observation has been modified subsequent. This includes updates/new information and corrections.")),
+            "corrected" => Some(Chip::new("bg-purple-100 border-purple-500", "Corrected", "Subsequent to being Final, the observation has been modified to correct an error in the test result.")),
+            "cancelled" => Some(Chip::new("bg-red-100 border-red-500", "Cancelled", "The observation is unavailable because the measurement was not started or not completed (also sometimes called 'aborted').")),
+            "entered-in-error" => Some(Chip::new("bg-purple-100 border-purple-500", "Entered in Error", "The observation has been withdrawn following previous final release. This electronic record should never have existed, though it is possible that real-world decisions were based on it.")),
+            "unknown" => Some(Chip::new("bg-gray-100 border-gray-500", "Unknown", "The authoring/source system does not know which of the status values currently applies for this observation. Note: This concept is not to be used for 'other' - one of the listed statuses is presumed to apply, but the authoring/source system does not know which.")),
+            _ => None,
+        }
+    }
+
+    pub fn category(&self) -> String {
+        self.category
+            .iter()
+            .map(|category| category.to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+
+    pub fn code(&self) -> String {
+        self.code.to_string()
+    }
+
+    pub fn value(&self) -> String {
+        self.value_quantity
+            .as_ref()
+            .and_then(|v| v.try_to_string())
+            .unwrap_or_default()
+    }
+
+    pub fn interpretation(&self) -> String {
+        self.interpretation
+            .iter()
+            .flatten()
+            .map(|interpretation| interpretation.to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+impl TimelineEvent for Observation {
+    fn timestamp(&self) -> Option<jiff::Timestamp> {
+        Some(self.effective_date_time)
+    }
+}
+
 pub trait TimelineEvent {
     /// Returns the timestamp that is used to sort events in the timeline. If
     /// `None` is returned, the event will not be included in the timeline.
@@ -516,6 +641,7 @@ pub enum Resource {
     Encounter(Encounter),
     Condition(Condition),
     Procedure(Procedure),
+    Observation(Observation),
     #[serde(other)]
     Unknown,
 }
@@ -526,6 +652,7 @@ impl Resource {
             Resource::Encounter(encounter) => Some(encounter),
             Resource::Condition(condition) => Some(condition),
             Resource::Procedure(procedure) => Some(procedure),
+            Resource::Observation(observation) => Some(observation),
             _ => None,
         }
     }
