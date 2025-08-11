@@ -141,7 +141,7 @@ struct RawCoding {
 }
 
 /// http://hl7.org/fhir/StructureDefinition/Coding
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "server", serde(from = "RawCoding"))]
 pub struct Coding {
@@ -188,7 +188,7 @@ impl fmt::Display for Coding {
 }
 
 /// http://hl7.org/fhir/StructureDefinition/CodeableConcept
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CodeableConcept {
     pub coding: Option<Vec<Coding>>,
     pub text: Option<String>,
@@ -530,16 +530,16 @@ impl TimelineEvent for Procedure {
 
 /// http://hl7.org/fhir/StructureDefinition/Quantity
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct Quantity {
-    value: Option<f64>,
-    comparator: Option<String>,
-    unit: Option<String>,
-    system: Option<String>,
-    code: Option<String>,
+pub struct Quantity {
+    pub value: Option<f64>,
+    pub comparator: Option<String>,
+    pub unit: Option<String>,
+    pub system: Option<String>,
+    pub code: Option<String>,
 }
 
 /// Quantity where the `comparator` is not used.
-type SimpleQuantity = Quantity;
+pub type SimpleQuantity = Quantity;
 
 impl Quantity {
     pub fn try_to_string(&self) -> Option<String> {
@@ -562,27 +562,27 @@ impl Quantity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Observation {
-    id: Option<String>,
-    identifier: Vec<Identifier>,
-    status: String,
-    category: Vec<CodeableConcept>,
-    code: CodeableConcept,
-    encounter: Option<Reference>,
-    effective_date_time: jiff::Timestamp,
-    issued: Option<jiff::Timestamp>,
-    value_quantity: Option<Quantity>,
-    data_absent_reason: Option<CodeableConcept>,
-    interpretation: Option<Vec<CodeableConcept>>,
-    note: Option<Vec<Annotation>>,
-    method: Option<CodeableConcept>,
-    reference_range: Option<Vec<ObservationReferenceRange>>,
+    pub id: Option<String>,
+    pub identifier: Vec<Identifier>,
+    pub status: String,
+    pub category: Vec<CodeableConcept>,
+    pub code: CodeableConcept,
+    pub encounter: Option<Reference>,
+    pub effective_date_time: jiff::Timestamp,
+    pub issued: Option<jiff::Timestamp>,
+    pub value_quantity: Option<Quantity>,
+    pub data_absent_reason: Option<CodeableConcept>,
+    pub interpretation: Option<Vec<CodeableConcept>>,
+    pub note: Option<Vec<Annotation>>,
+    pub method: Option<CodeableConcept>,
+    pub reference_range: Option<Vec<ObservationReferenceRange>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct ObservationReferenceRange {
-    low: Option<SimpleQuantity>,
-    high: Option<SimpleQuantity>,
-    r#type: Option<CodeableConcept>,
+pub struct ObservationReferenceRange {
+    pub low: Option<SimpleQuantity>,
+    pub high: Option<SimpleQuantity>,
+    pub r#type: Option<CodeableConcept>,
 }
 
 impl Observation {

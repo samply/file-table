@@ -94,6 +94,39 @@ fn OptionalChip(chip: Option<fhir::Chip>) -> Element {
 }
 
 #[component]
+fn CodeableConcept(codeable_concept: fhir::CodeableConcept) -> Element {
+    // Put user-selected coding first
+    let codings = codeable_concept
+        .coding
+        .iter()
+        .flatten()
+        .sorted_by_key(|c| c.user_selected)
+        .rev()
+        .collect::<Vec<_>>();
+
+    let text = codeable_concept
+        .text
+        .or_else(|| {
+            codings
+                .first()
+                .and_then(|c| c.display.clone().or(c.code.clone()))
+        })
+        .unwrap_or_default();
+
+    rsx! {
+        "{text}"
+        for coding in codings {
+            " "
+            span {
+                class: "text-sm border rounded-full px-1.5 bg-blue-100 border-blue-500",
+                title: "{coding.system.clone().unwrap_or_default()}",
+                "{coding.code.clone().unwrap_or_default()}"
+            }
+        }
+    }
+}
+
+#[component]
 fn PatientView(id: String) -> Element {
     let id = use_signal(|| id);
     let patient_details = use_server_future(move || serverfn::get_patient_details(id()))?;
@@ -167,7 +200,10 @@ fn PatientView(id: String) -> Element {
                                             time { class: "my-0.5 text-sm font-normal leading-none text-gray-600",
                                                 "{condition.formatted_timestamp()}"
                                             }
-                                            p { "Code: {condition.code()}" }
+                                            p {
+                                                "Code: "
+                                                CodeableConcept { codeable_concept: condition.code.clone() }
+                                            }
                                             p { "Body site: {condition.body_site()}" }
                                             p { "Onset: {condition.onset_start()}" }
                                         // p { "Notes: {condition.notes()}" }
@@ -187,7 +223,10 @@ fn PatientView(id: String) -> Element {
                                                 "{procedure.formatted_timestamp()}"
                                             }
                                             p { "Category: {procedure.category()}" }
-                                            p { "Code: {procedure.code()}" }
+                                            p {
+                                                "Code: "
+                                                CodeableConcept { codeable_concept: procedure.code.clone() }
+                                            }
                                             p { "Body Site: {procedure.body_site()}" }
                                         // p { "Notes: {procedure.note()}" }
                                         }
@@ -207,7 +246,10 @@ fn PatientView(id: String) -> Element {
                                             }
                                             p { "Identifier: {observation.identifier()}" }
                                             p { "Category: {observation.category()}" }
-                                            p { "Code: {observation.code()}" }
+                                            p {
+                                                "Code: "
+                                                CodeableConcept { codeable_concept: observation.code.clone() }
+                                            }
                                             p { "Value: {observation.value()}" }
                                             p { "Interpretation: {observation.interpretation()}" }
                                         }
