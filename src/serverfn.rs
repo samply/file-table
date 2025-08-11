@@ -6,6 +6,17 @@ pub trait RequestBuilderExt {
     fn with_auth(self) -> Self;
 }
 
+#[cfg(feature = "server")]
+impl crate::serverfn::RequestBuilderExt for reqwest::RequestBuilder {
+    fn with_auth(self) -> Self {
+        if let Some(fhir_username) = &server::config().fhir_username {
+            self.basic_auth(fhir_username, server::config().fhir_password.as_deref())
+        } else {
+            self
+        }
+    }
+}
+
 #[server]
 pub async fn get_patients() -> Result<Vec<fhir::Patient>, ServerFnError> {
     let url = format!("{}/Patient", server::config().fhir_base_url);

@@ -1,5 +1,7 @@
 #![cfg(feature = "server")]
 
+use std::collections::HashMap;
+
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
@@ -24,12 +26,47 @@ pub fn config() -> &'static Config {
     CONFIG.get().expect("Config should be loaded before use")
 }
 
-impl crate::serverfn::RequestBuilderExt for reqwest::RequestBuilder {
-    fn with_auth(self) -> Self {
-        if let Some(fhir_username) = &config().fhir_username {
-            self.basic_auth(fhir_username, config().fhir_password.as_deref())
-        } else {
-            self
+type CodeMaps = HashMap<String, HashMap<String, String>>;
+
+static CODE_MAPS: std::sync::OnceLock<CodeMaps> = std::sync::OnceLock::new();
+
+/// http://hl7.org/fhir/StructureDefinition/CodeSystem
+#[derive(Debug, serde::Deserialize)]
+struct CodeSystem {
+    url: String,
+    concept: Vec<CodeSystemConcept>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct CodeSystemConcept {
+    code: String,
+    display: String,
+}
+
+pub fn load_code_maps() -> anyhow::Result<()> {
+    let mut code_maps = HashMap::new();
+    for entry in std::fs::read_dir("codesystems")? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) == Some("json") {
+            let file_content = std::fs::read_to_string(&path)?;
+            let code_system: CodeSystem = serde_json::from_str(&file_content)?;
+            let mut code_map = HashMap::new();
+            for concept in code_system.concept {
+                code_map.insert(concept.code, concept.display);
+            }
+            code_maps.insert(code_system.url, code_map);
         }
     }
+    CODE_MAPS
+        .set(code_maps)
+        .expect("Code maps should only be set once");
+    tracing::info!("Loaded {} code maps", CODE_MAPS.get().unwrap().len());
+    Ok(())
+}
+
+pub fn code_maps() -> &'static CodeMaps {
+    CODE_MAPS
+        .get()
+        .expect("Code maps should be loaded before use")
 }

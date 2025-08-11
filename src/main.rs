@@ -27,6 +27,12 @@ fn main() {
         std::process::exit(1);
     }
 
+    #[cfg(feature = "server")]
+    if let Err(e) = server::load_code_maps() {
+        tracing::error!("Failed to load code maps: {e}");
+        std::process::exit(1);
+    }
+
     dioxus::launch(App);
 }
 

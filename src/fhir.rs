@@ -128,12 +128,53 @@ impl Patient {
     }
 }
 
+/// Helper struct for looking up code display names during deserialization. On the server side we
+/// deserialize as `RawCoding` and then convert to `Coding`. The `From` implementation handles
+/// the lookup in the code maps.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RawCoding {
+    system: Option<String>,
+    code: Option<String>,
+    display: Option<String>,
+    user_selected: Option<bool>,
+}
+
 /// http://hl7.org/fhir/StructureDefinition/Coding
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "server", serde(from = "RawCoding"))]
 pub struct Coding {
     pub system: Option<String>,
     pub code: Option<String>,
     pub display: Option<String>,
+    pub user_selected: Option<bool>,
+}
+
+#[cfg(feature = "server")]
+impl From<RawCoding> for Coding {
+    fn from(
+        RawCoding {
+            system,
+            code,
+            mut display,
+            user_selected,
+        }: RawCoding,
+    ) -> Coding {
+        if let (Some(code), Some(system)) = (&code, &system) {
+            display = crate::server::code_maps()
+                .get(system)
+                .and_then(|map| map.get(code))
+                .cloned()
+                .or(display);
+        }
+        Coding {
+            system,
+            code,
+            display,
+            user_selected,
+        }
+    }
 }
 
 impl fmt::Display for Coding {
@@ -517,13 +558,6 @@ impl Quantity {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct ObservationReferenceRange {
-    low: Option<SimpleQuantity>,
-    high: Option<SimpleQuantity>,
-    r#type: Option<CodeableConcept>,
-}
-
 /// https://www.medizininformatik-initiative.de/fhir/core/modul-labor/StructureDefinition/ObservationLab
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -542,6 +576,13 @@ pub struct Observation {
     note: Option<Vec<Annotation>>,
     method: Option<CodeableConcept>,
     reference_range: Option<Vec<ObservationReferenceRange>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ObservationReferenceRange {
+    low: Option<SimpleQuantity>,
+    high: Option<SimpleQuantity>,
+    r#type: Option<CodeableConcept>,
 }
 
 impl Observation {
