@@ -645,6 +645,62 @@ impl Observation {
             .collect::<Vec<_>>()
             .join(", ")
     }
+
+    /// http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation
+    #[rustfmt::skip]
+    pub fn interpretation_chip(&self) -> Option<Chip> {
+        match self
+            .interpretation
+            .iter()
+            .flatten()
+            .find_map(|interpretation| {
+                interpretation
+                    .code_in_system("http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation")
+            })?
+            .as_str()
+        {
+            "N" => Some(Chip::new("bg-green-100 border-green-500", "Normal", "The result or observation value is within the reference range or expected norm.")),
+            "A" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Abnormal", "The result or observation value is outside the reference range or expected norm.")),
+            "H" => Some(Chip::new("bg-orange-100 border-orange-500", "High", "The result for a quantitative observation is above the upper limit of the reference range.")),
+            "HU" => Some(Chip::new("bg-orange-100 border-orange-500", "Significantly high", "A test result that is significantly higher than the reference or therapeutic interval.")),
+            "HH" => Some(Chip::new("bg-red-100 border-red-500", "Critical high", "The result is above a reference level at which immediate action should be considered for patient safety.")),
+            "L" => Some(Chip::new("bg-blue-100 border-blue-500", "Low", "The result for a quantitative observation is below the lower limit of the reference range.")),
+            "LU" => Some(Chip::new("bg-blue-100 border-blue-500", "Significantly low", "A test result that is significantly lower than the reference or therapeutic interval.")),
+            "LL" => Some(Chip::new("bg-red-100 border-red-500", "Critical low", "The result is below a reference level at which immediate action should be considered for patient safety.")),
+            "AA" => Some(Chip::new("bg-red-100 border-red-500", "Critical abnormal", "The result is outside a reference range at which immediate action should be considered for patient safety.")),
+            "B" => Some(Chip::new("bg-green-100 border-green-500", "Better", "The current result has improved compared to the previous result.")),
+            "W" => Some(Chip::new("bg-red-100 border-red-500", "Worse", "The current result has degraded compared to the previous result.")),
+            "U" => Some(Chip::new("bg-orange-100 border-orange-500", "Significant change up", "The current result has increased from the previous result for a quantitative observation.")),
+            "D" => Some(Chip::new("bg-blue-100 border-blue-500", "Significant change down", "The current result has decreased from the previous result for a quantitative observation.")),
+            "POS" => Some(Chip::new("bg-red-100 border-red-500", "Positive", "A presence finding of the specified component based on the established threshold.")),
+            "NEG" => Some(Chip::new("bg-green-100 border-green-500", "Negative", "An absence finding of the specified component based on the established threshold.")),
+            "DET" => Some(Chip::new("bg-red-100 border-red-500", "Detected", "The measurement above the limit of detection of the performed test or procedure.")),
+            "ND" => Some(Chip::new("bg-green-100 border-green-500", "Not detected", "The presence could not be determined within the limit of detection.")),
+            "IND" => Some(Chip::new("bg-gray-100 border-gray-500", "Indeterminate", "The component could neither be declared positive/negative nor detected/not detected.")),
+            "E" => Some(Chip::new("bg-gray-100 border-gray-500", "Equivocal", "The results are borderline and can neither be declared positive/negative nor detected/not detected.")),
+            "S" => Some(Chip::new("bg-green-100 border-green-500", "Susceptible", "Bacterial strain inhibited by concentration associated with high likelihood of therapeutic success.")),
+            "I" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Intermediate", "Bacterial strain inhibited by concentration associated with uncertain therapeutic effect.")),
+            "R" => Some(Chip::new("bg-red-100 border-red-500", "Resistant", "Bacterial strain inhibited by concentration associated with high likelihood of therapeutic failure.")),
+            "SDD" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Susceptible-dose dependent", "Isolates with MICs that approach usually attainable blood and tissue levels.")),
+            "NS" => Some(Chip::new("bg-red-100 border-red-500", "Non-susceptible", "A category used for isolates for which only a susceptible interpretive criterion has been designated.")),
+            "RR" => Some(Chip::new("bg-red-100 border-red-500", "Reactive", "The component reacted with the reagent above the reliably measurable limit.")),
+            "WR" => Some(Chip::new("bg-yellow-100 border-yellow-500", "Weakly reactive", "The component reacted with the reagent, but below the reliably measurable limit.")),
+            "NR" => Some(Chip::new("bg-green-100 border-green-500", "Non-reactive", "The component did not react measurably with the reagent.")),
+            "CAR" => Some(Chip::new("bg-purple-100 border-purple-500", "Carrier", "The patient is considered as carrier based on the testing results.")),
+            "<" => Some(Chip::new("bg-gray-100 border-gray-500", "Off scale low", "The result is below the minimum detection limit.")),
+            ">" => Some(Chip::new("bg-gray-100 border-gray-500", "Off scale high", "The result is above the maximum quantifiable limit.")),
+            "IE" => Some(Chip::new("bg-gray-100 border-gray-500", "Insufficient evidence", "There is insufficient evidence for a categorical interpretation.")),
+            "EXP" => Some(Chip::new("bg-green-100 border-green-500", "Expected", "This result is determined to be Expected in light of known contraindicators.")),
+            "UNE" => Some(Chip::new("bg-red-100 border-red-500", "Unexpected", "This result is determined to be Unexpected in light of known contraindicators.")),
+            "EX" => Some(Chip::new("bg-gray-100 border-gray-500", "Outside threshold", "The observation/test result is interpreted as being outside the inclusion range for a particular protocol.")),
+            "HX" => Some(Chip::new("bg-orange-100 border-orange-500", "Above high threshold", "The observation/test result is above the high threshold for a particular protocol.")),
+            "LX" => Some(Chip::new("bg-blue-100 border-blue-500", "Below low threshold", "The observation/test result is below the low threshold for a particular protocol.")),
+            "SYN-S" => Some(Chip::new("bg-green-100 border-green-500", "Synergy - susceptible", "The bacteria are susceptible to a combination therapy.")),
+            "SYN-R" => Some(Chip::new("bg-red-100 border-red-500", "Synergy - resistant", "The bacteria are not susceptible to a combination therapy.")),
+            "NCL" => Some(Chip::new("bg-gray-100 border-gray-500", "No CLSI defined breakpoint", "Not enough clinical trial data available to establish the breakpoints.")),
+            _ => None,
+        }
+    }
 }
 
 impl TimelineEvent for Observation {
