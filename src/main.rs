@@ -132,7 +132,7 @@ fn PatientView(id: String) -> Element {
     let patient_details = use_server_future(move || serverfn::get_patient_details(id()))?;
     match &*patient_details.read_unchecked() {
         Some(Ok((patient, bundle))) => rsx! {
-            div { class: "m-4",
+            div { class: "max-w-4xl mx-auto px-4",
                 h2 { class: "text-xl font-bold my-3", "Patient Details" }
                 p { "Gender: {patient.gender()}" }
                 p { "Birth Date: {patient.birth_date()}" }
@@ -151,85 +151,61 @@ fn PatientView(id: String) -> Element {
                             match entry.resource {
                                 fhir::Resource::Encounter(ref encounter) => {
                                     rsx! {
-                                        details { open: false,
-                                            summary {
-                                                div { class: "inline-flex items-center gap-1.5",
-                                                    h3 { class: "font-bold", "Encounter" }
-                                                    OptionalChip { chip: encounter.status_chip() }
-                                                }
-                                            }
-                                            time { class: "my-0.5 text-sm font-normal leading-none text-gray-600",
-                                                "{encounter.formatted_timestamp()}"
-                                            }
-                                            p { "Class: {encounter.class()}" }
-                                            p { "Visit number: {encounter.visit_number()}" }
-                                            p { "Encounter level: {encounter.encounter_level()}" }
-                                            p { "Service type: {encounter.service_type()}" }
-                                            p { "Service provider: {encounter.service_provider()}" }
+                                        div { class: "flex items-center gap-1.5",
+                                            h3 { class: "font-bold", "Encounter" }
+                                            OptionalChip { chip: encounter.status_chip() }
                                         }
+                                        time { class: "text-sm text-gray-600", "{encounter.formatted_timestamp()}" }
+                                        p { "Class: {encounter.class()}" }
+                                        p { "Visit number: {encounter.visit_number()}" }
+                                        p { "Encounter level: {encounter.encounter_level()}" }
+                                        p { "Service type: {encounter.service_type()}" }
+                                        p { "Service provider: {encounter.service_provider()}" }
                                     }
                                 }
                                 fhir::Resource::Condition(ref condition) => {
                                     rsx! {
-                                        details { open: true,
-                                            summary {
-                                                div { class: "inline-flex items-center gap-1.5",
-                                                    h3 { class: "font-bold", "Condition" }
-                                                    OptionalChip { chip: condition.clinical_status_chip() }
-                                                    OptionalChip { chip: condition.verification_status_chip() }
-                                                }
-                                            }
-                                            time { class: "my-0.5 text-sm font-normal leading-none text-gray-600",
-                                                "{condition.formatted_timestamp()}"
-                                            }
-                                            p {
-                                                "Code: "
-                                                CodeableConcept { codeable_concept: condition.code.clone() }
-                                            }
+                                        div { class: "flex items-center gap-1.5",
+                                            h3 { class: "font-bold", "Condition" }
+                                            OptionalChip { chip: condition.clinical_status_chip() }
+                                            OptionalChip { chip: condition.verification_status_chip() }
+                                        }
+                                        time { class: "text-sm text-gray-600", "{condition.formatted_timestamp()}" }
+                                        p {
+                                            "Code: "
+                                            CodeableConcept { codeable_concept: condition.code.clone() }
                                         }
                                     }
                                 }
                                 fhir::Resource::Procedure(ref procedure) => {
                                     rsx! {
-                                        details { open: true,
-                                            summary {
-                                                div { class: "inline-flex items-center gap-1.5",
-                                                    h3 { class: "font-bold", "Procedure" }
-                                                    OptionalChip { chip: procedure.status_chip() }
-                                                }
-                                            }
-                                            time { class: "my-0.5 text-sm font-normal leading-none text-gray-600",
-                                                "{procedure.formatted_timestamp()}"
-                                            }
-                                            p { "Category: {procedure.category()}" }
-                                            p {
-                                                "Code: "
-                                                CodeableConcept { codeable_concept: procedure.code.clone() }
-                                            }
+                                        div { class: "flex items-center gap-1.5",
+                                            h3 { class: "font-bold", "Procedure" }
+                                            OptionalChip { chip: procedure.status_chip() }
+                                        }
+                                        time { class: "text-sm text-gray-600", "{procedure.formatted_timestamp()}" }
+                                        p { "Category: {procedure.category()}" }
+                                        p {
+                                            "Code: "
+                                            CodeableConcept { codeable_concept: procedure.code.clone() }
                                         }
                                     }
                                 }
                                 fhir::Resource::Observation(ref observation) => {
                                     rsx! {
-                                        details { open: true,
-                                            summary {
-                                                div { class: "inline-flex items-center gap-1.5",
-                                                    h3 { class: "font-bold", "Lab result" }
-                                                    OptionalChip { chip: observation.status_chip() }
-                                                }
-                                            }
-                                            time { class: "my-0.5 text-sm font-normal leading-none text-gray-600",
-                                                "{observation.formatted_timestamp()}"
-                                            }
-                                            p {
-                                                "Code: "
-                                                CodeableConcept { codeable_concept: observation.code.clone() }
-                                            }
-                                            p { "ID: {observation.identifier()}" }
-                                            p {
-                                                "Value: {observation.value()} "
-                                                OptionalChip { chip: observation.interpretation_chip() }
-                                            }
+                                        div { class: "flex items-center gap-1.5",
+                                            h3 { class: "font-bold", "Lab result" }
+                                            OptionalChip { chip: observation.status_chip() }
+                                        }
+                                        time { class: "text-sm text-gray-600", "{observation.formatted_timestamp()}" }
+                                        p {
+                                            "Code: "
+                                            CodeableConcept { codeable_concept: observation.code.clone() }
+                                        }
+                                        p { "ID: {observation.identifier()}" }
+                                        p {
+                                            "Value: {observation.value()} "
+                                            OptionalChip { chip: observation.interpretation_chip() }
                                         }
                                     }
                                 }
