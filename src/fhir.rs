@@ -746,7 +746,7 @@ pub enum Resource {
 impl Resource {
     pub fn timeline_event(&self) -> Option<&dyn TimelineEvent> {
         match self {
-            Resource::Encounter(encounter) => Some(encounter),
+            // Resource::Encounter(encounter) => Some(encounter),
             Resource::Condition(condition) => Some(condition),
             Resource::Procedure(procedure) => Some(procedure),
             Resource::Observation(observation) => Some(observation),
