@@ -134,29 +134,11 @@ fn PatientView(id: String) -> Element {
         Some(Ok((patient, bundle))) => rsx! {
             div { class: "m-4",
                 h2 { class: "text-xl font-bold my-3", "Patient Details" }
-                // p { "Name: {patient.name()}" }
                 p { "Gender: {patient.gender()}" }
                 p { "Birth Date: {patient.birth_date()}" }
                 p { "Deceased: {patient.deceased()}" }
                 p { "Address: {patient.address()}" }
                 h2 { class: "text-xl font-bold my-3", "Patient Timeline" }
-                // p {
-                //     class: "flex gap-1.5",
-                //     svg {
-                //         stroke: "currentColor",
-                //         fill: "none",
-                //         xmlns: "http://www.w3.org/2000/svg",
-                //         "stroke-width": "1.5",
-                //         "viewBox": "0 0 24 24",
-                //         class: "size-6",
-                //         path {
-                //             "stroke-linejoin": "round",
-                //             "stroke-linecap": "round",
-                //             d: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z",
-                //         }
-                //     }
-                //     "4 events are not shown because they are missing a timestamp."
-                // }
                 ol { class: "relative border-s border-gray-300",
                     for entry in bundle
                         .entry
@@ -204,9 +186,6 @@ fn PatientView(id: String) -> Element {
                                                 "Code: "
                                                 CodeableConcept { codeable_concept: condition.code.clone() }
                                             }
-                                            p { "Body site: {condition.body_site()}" }
-                                            p { "Onset: {condition.onset_start()}" }
-                                        // p { "Notes: {condition.notes()}" }
                                         }
                                     }
                                 }
@@ -227,8 +206,6 @@ fn PatientView(id: String) -> Element {
                                                 "Code: "
                                                 CodeableConcept { codeable_concept: procedure.code.clone() }
                                             }
-                                            p { "Body Site: {procedure.body_site()}" }
-                                        // p { "Notes: {procedure.note()}" }
                                         }
                                     }
                                 }
@@ -237,21 +214,22 @@ fn PatientView(id: String) -> Element {
                                         details { open: true,
                                             summary {
                                                 div { class: "inline-flex items-center gap-1.5",
-                                                    h3 { class: "font-bold", "Observation" }
+                                                    h3 { class: "font-bold", "Lab result" }
                                                     OptionalChip { chip: observation.status_chip() }
                                                 }
                                             }
                                             time { class: "my-0.5 text-sm font-normal leading-none text-gray-600",
                                                 "{observation.formatted_timestamp()}"
                                             }
-                                            p { "Identifier: {observation.identifier()}" }
-                                            p { "Category: {observation.category()}" }
                                             p {
                                                 "Code: "
                                                 CodeableConcept { codeable_concept: observation.code.clone() }
                                             }
-                                            p { "Value: {observation.value()}" }
-                                            p { "Interpretation: {observation.interpretation()}" }
+                                            p { "ID: {observation.identifier()}" }
+                                            p {
+                                                "Value: {observation.value()} "
+                                                OptionalChip { chip: observation.interpretation_chip() }
+                                            }
                                         }
                                     }
                                 }
