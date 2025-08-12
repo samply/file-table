@@ -1,8 +1,13 @@
+include:
+  - demo/compose.yaml
+
 services:
   scout:
-    image: samply/scout
+    image: samply/scout:main
     ports:
       - 8080:8080
+    volumes:
+      - ./codesystems:/codesystems:ro
     extra_hosts:
       - host.docker.internal:host-gateway
     configs:
