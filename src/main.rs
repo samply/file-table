@@ -202,11 +202,11 @@ fn PatientView(id: String) -> Element {
                                             "Code: "
                                             CodeableConcept { codeable_concept: observation.code.clone() }
                                         }
-                                        p { "ID: {observation.identifier()}" }
                                         p {
                                             "Value: {observation.value()} "
                                             OptionalChip { chip: observation.interpretation_chip() }
                                         }
+                                        p { "Normal range: {observation.normal_range()}" }
                                     }
                                 }
                                 _ => unreachable!(),

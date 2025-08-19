@@ -701,6 +701,32 @@ impl Observation {
             _ => None,
         }
     }
+
+    pub fn normal_range(&self) -> String {
+        self.reference_range
+            .iter()
+            .flatten()
+            .find(|r| {
+                r.r#type.as_ref().is_some_and(|c| {
+                    c.code_in_system("http://terminology.hl7.org/CodeSystem/referencerange-meaning")
+                        == Some("normal".into())
+                })
+            })
+            .map(|r| {
+                format!(
+                    "{} - {}",
+                    r.low
+                        .as_ref()
+                        .and_then(|l| l.try_to_string())
+                        .unwrap_or_default(),
+                    r.high
+                        .as_ref()
+                        .and_then(|h| h.try_to_string())
+                        .unwrap_or_default()
+                )
+            })
+            .unwrap_or_default()
+    }
 }
 
 impl TimelineEvent for Observation {
