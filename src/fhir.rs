@@ -3,12 +3,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-pub fn format_time(timestamp: jiff::Timestamp) -> String {
-    let zoned = timestamp.to_zoned(jiff::tz::TimeZone::system());
-    // Jan 08, 2020, 07:00 CET
-    zoned.strftime("%b %d, %Y, %H:%M %Z").to_string()
-}
-
 /// http://hl7.org/fhir/StructureDefinition/HumanName
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HumanName {
@@ -346,10 +340,8 @@ impl Encounter {
             .and_then(|service_provider| service_provider.identifier.as_ref()?.value.clone())
             .unwrap_or_default()
     }
-}
 
-impl TimelineEvent for Encounter {
-    fn timestamp(&self) -> Option<jiff::Timestamp> {
+    pub fn timeline_timestamp(&self) -> Option<jiff::Timestamp> {
         self.period.as_ref().and_then(|period| period.start)
     }
 }
@@ -429,15 +421,6 @@ impl Condition {
             .join(", ")
     }
 
-    pub fn onset_start(&self) -> String {
-        self.onset_period
-            .as_ref()
-            .and_then(|period| period.start)
-            .or(self.onset_date_time)
-            .map(|timestamp| format_time(timestamp))
-            .unwrap_or_default()
-    }
-
     pub fn note(&self) -> String {
         self.note
             .iter()
@@ -446,10 +429,8 @@ impl Condition {
             .collect::<Vec<_>>()
             .join(", ")
     }
-}
 
-impl TimelineEvent for Condition {
-    fn timestamp(&self) -> Option<jiff::Timestamp> {
+    pub fn timeline_timestamp(&self) -> Option<jiff::Timestamp> {
         Some(self.recorded_date)
     }
 }
@@ -517,10 +498,8 @@ impl Procedure {
             .collect::<Vec<_>>()
             .join(", ")
     }
-}
 
-impl TimelineEvent for Procedure {
-    fn timestamp(&self) -> Option<jiff::Timestamp> {
+    pub fn timeline_timestamp(&self) -> Option<jiff::Timestamp> {
         self.performed_period
             .as_ref()
             .and_then(|period| period.start)
@@ -702,7 +681,7 @@ impl Observation {
         }
     }
 
-    pub fn normal_range(&self) -> String {
+    pub fn normal_range(&self) -> Option<String> {
         self.reference_range
             .iter()
             .flatten()
@@ -725,27 +704,24 @@ impl Observation {
                         .unwrap_or_default()
                 )
             })
-            .unwrap_or_default()
     }
-}
 
-impl TimelineEvent for Observation {
-    fn timestamp(&self) -> Option<jiff::Timestamp> {
+    pub fn timeline_timestamp(&self) -> Option<jiff::Timestamp> {
         Some(self.effective_date_time)
     }
 }
 
-pub trait TimelineEvent {
-    /// Returns the timestamp that is used to sort events in the timeline. If
-    /// `None` is returned, the event will not be included in the timeline.
-    fn timestamp(&self) -> Option<jiff::Timestamp>;
+// pub trait TimelineEvent {
+//     /// Returns the timestamp that is used to sort events in the timeline. If
+//     /// `None` is returned, the event will not be included in the timeline.
+//     fn timestamp(&self) -> Option<jiff::Timestamp>;
 
-    fn formatted_timestamp(&self) -> String {
-        self.timestamp()
-            .map(format_time)
-            .unwrap_or_else(|| "Unknown".to_string())
-    }
-}
+//     fn formatted_timestamp(&self) -> String {
+//         self.timestamp()
+//             .map(format_time)
+//             .unwrap_or_else(|| "Unknown".to_string())
+//     }
+// }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FhirEntry<T> {
@@ -770,13 +746,14 @@ pub enum Resource {
 }
 
 impl Resource {
-    pub fn timeline_event(&self) -> Option<&dyn TimelineEvent> {
+    /// Returns the timestamp that is used to sort entries in the timeline.
+    /// If `None` is returned, the entry will not be included in the timeline.
+    pub fn timeline_timestamp(&self) -> Option<jiff::Timestamp> {
         match self {
-            // Resource::Encounter(encounter) => Some(encounter),
-            Resource::Condition(condition) => Some(condition),
-            Resource::Procedure(procedure) => Some(procedure),
-            Resource::Observation(observation) => Some(observation),
-            _ => None,
+            Resource::Condition(condition) => condition.timeline_timestamp(),
+            Resource::Procedure(procedure) => procedure.timeline_timestamp(),
+            Resource::Observation(observation) => observation.timeline_timestamp(),
+            Resource::Patient(_) | Resource::Encounter(_) | Resource::Unknown => None,
         }
     }
 }

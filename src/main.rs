@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use fhir::TimelineEvent;
 use itertools::Itertools;
 
 mod fhir;
@@ -34,6 +33,12 @@ fn main() {
     }
 
     dioxus::launch(App);
+}
+
+pub fn format_timestamp(timestamp: jiff::Timestamp) -> String {
+    let zoned = timestamp.to_zoned(jiff::tz::TimeZone::system());
+    // Jan 08, 2020, 07:00 CET
+    zoned.strftime("%b %d, %Y, %H:%M %Z").to_string()
 }
 
 #[component]
@@ -84,6 +89,7 @@ fn PatientTable() -> Element {
 fn OptionalChip(chip: Option<fhir::Chip>) -> Element {
     rsx! {
         if let Some(chip) = chip {
+            " "
             span {
                 class: "text-sm border rounded-full px-1.5 {chip.class}",
                 title: "{chip.hover_text}",
@@ -118,7 +124,7 @@ fn CodeableConcept(codeable_concept: fhir::CodeableConcept) -> Element {
         for coding in codings {
             " "
             span {
-                class: "text-sm border rounded-full px-1.5 bg-blue-100 border-blue-500",
+                class: "text-nowrap text-sm border rounded-full px-1.5 bg-blue-100 border-blue-500",
                 title: "{coding.system.clone().unwrap_or_default()}",
                 "{coding.code.clone().unwrap_or_default()}"
             }
@@ -139,78 +145,85 @@ fn PatientView(id: String) -> Element {
                 p { "Deceased: {patient.deceased()}" }
                 p { "Address: {patient.address()}" }
                 h2 { class: "text-xl font-bold my-3", "Patient Timeline" }
-                ol { class: "relative border-s border-gray-300",
-                    for entry in bundle
-                        .entry
-                        .iter()
-                        .filter(|e| e.resource.timeline_event().is_some())
-                        .sorted_by_key(|e| e.resource.timeline_event().unwrap().timestamp())
-                    {
-                        li { class: "mb-5 ms-4",
-                            div { class: "absolute w-3 h-3 bg-gray-300 rounded-full mt-1.5 -start-1.5 border border-white" }
-                            match entry.resource {
-                                fhir::Resource::Encounter(ref encounter) => {
-                                    rsx! {
-                                        div { class: "flex items-center gap-1.5",
-                                            h3 { class: "font-bold", "Encounter" }
-                                            OptionalChip { chip: encounter.status_chip() }
-                                        }
-                                        time { class: "text-sm text-gray-600", "{encounter.formatted_timestamp()}" }
-                                        p { "Class: {encounter.class()}" }
-                                        p { "Visit number: {encounter.visit_number()}" }
-                                        p { "Encounter level: {encounter.encounter_level()}" }
-                                        p { "Service type: {encounter.service_type()}" }
-                                        p { "Service provider: {encounter.service_provider()}" }
+                for ((entry , timestamp) , (_ , next_timestamp)) in bundle
+                    .entry
+                    .iter()
+                    .filter_map(|e| e.resource.timeline_timestamp().map(|t| (e, t)))
+                    .sorted_by_key(|(_, t)| t.clone())
+                    .circular_tuple_windows()
+                {
+                    div { class: "my-3 p-2 border border-gray-300 rounded bg-gray-50",
+                        match entry.resource {
+                            fhir::Resource::Encounter(ref encounter) => {
+                                rsx! {
+                                    p {
+                                        span { class: "font-bold", "Encounter" }
+                                        OptionalChip { chip: encounter.status_chip() }
                                     }
+                                    time { class: "text-sm text-gray-600", "{format_timestamp(timestamp)}" }
+                                    p { "Class: {encounter.class()}" }
+                                    p { "Visit number: {encounter.visit_number()}" }
+                                    p { "Encounter level: {encounter.encounter_level()}" }
+                                    p { "Service type: {encounter.service_type()}" }
+                                    p { "Service provider: {encounter.service_provider()}" }
                                 }
-                                fhir::Resource::Condition(ref condition) => {
-                                    rsx! {
-                                        div { class: "flex items-center gap-1.5",
-                                            h3 { class: "font-bold", "Condition" }
-                                            OptionalChip { chip: condition.clinical_status_chip() }
-                                            OptionalChip { chip: condition.verification_status_chip() }
-                                        }
-                                        time { class: "text-sm text-gray-600", "{condition.formatted_timestamp()}" }
-                                        p {
-                                            "Code: "
-                                            CodeableConcept { codeable_concept: condition.code.clone() }
-                                        }
-                                    }
-                                }
-                                fhir::Resource::Procedure(ref procedure) => {
-                                    rsx! {
-                                        div { class: "flex items-center gap-1.5",
-                                            h3 { class: "font-bold", "Procedure" }
-                                            OptionalChip { chip: procedure.status_chip() }
-                                        }
-                                        time { class: "text-sm text-gray-600", "{procedure.formatted_timestamp()}" }
-                                        p { "Category: {procedure.category()}" }
-                                        p {
-                                            "Code: "
-                                            CodeableConcept { codeable_concept: procedure.code.clone() }
-                                        }
-                                    }
-                                }
-                                fhir::Resource::Observation(ref observation) => {
-                                    rsx! {
-                                        div { class: "flex items-center gap-1.5",
-                                            h3 { class: "font-bold", "Lab result" }
-                                            OptionalChip { chip: observation.status_chip() }
-                                        }
-                                        time { class: "text-sm text-gray-600", "{observation.formatted_timestamp()}" }
-                                        p {
-                                            "Code: "
-                                            CodeableConcept { codeable_concept: observation.code.clone() }
-                                        }
-                                        p {
-                                            "Value: {observation.value()} "
-                                            OptionalChip { chip: observation.interpretation_chip() }
-                                        }
-                                        p { "Normal range: {observation.normal_range()}" }
-                                    }
-                                }
-                                _ => unreachable!(),
                             }
+                            fhir::Resource::Condition(ref condition) => {
+                                rsx! {
+                                    p {
+                                        span { class: "font-bold", "Condition" }
+                                        OptionalChip { chip: condition.clinical_status_chip() }
+                                        OptionalChip { chip: condition.verification_status_chip() }
+                                    }
+                                    time { class: "text-sm text-gray-600", "{format_timestamp(timestamp)}" }
+                                    p {
+                                        "Code: "
+                                        CodeableConcept { codeable_concept: condition.code.clone() }
+                                    }
+                                }
+                            }
+                            fhir::Resource::Procedure(ref procedure) => {
+                                rsx! {
+                                    p {
+                                        span { class: "font-bold", "Procedure" }
+                                        OptionalChip { chip: procedure.status_chip() }
+                                    }
+                                    time { class: "text-sm text-gray-600", "{format_timestamp(timestamp)}" }
+                                    p {
+                                        "Code: "
+                                        CodeableConcept { codeable_concept: procedure.code.clone() }
+                                    }
+                                    p { "Category: {procedure.category()}" }
+                                }
+                            }
+                            fhir::Resource::Observation(ref observation) => {
+                                rsx! {
+                                    p {
+                                        span { class: "font-bold", "Lab result" }
+                                        OptionalChip { chip: observation.status_chip() }
+                                    }
+                                    time { class: "text-sm text-gray-600", "{format_timestamp(timestamp)}" }
+                                    p {
+                                        "Code: "
+                                        CodeableConcept { codeable_concept: observation.code.clone() }
+                                    }
+                                    p {
+                                        "Value: {observation.value()} "
+                                        OptionalChip { chip: observation.interpretation_chip() }
+                                    }
+                                    if let Some(normal_range) = observation.normal_range() {
+                                        p { "Normal range: {normal_range}" }
+                                    }
+                                }
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                    if next_timestamp.to_zoned(jiff::tz::TimeZone::system()).date()
+                        > timestamp.to_zoned(jiff::tz::TimeZone::system()).date()
+                    {
+                        h3 { class: "my-2 text-center",
+                            "{next_timestamp.to_zoned(jiff::tz::TimeZone::system()).date().strftime(\"%b %d, %Y\")}"
                         }
                     }
                 }
