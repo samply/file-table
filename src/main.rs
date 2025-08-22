@@ -91,7 +91,7 @@ fn OptionalChip(chip: Option<fhir::Chip>) -> Element {
         if let Some(chip) = chip {
             " "
             span {
-                class: "text-sm border rounded-full px-1.5 {chip.class}",
+                class: "inline-block text-sm border rounded-full px-1.5 {chip.class}",
                 title: "{chip.hover_text}",
                 "{chip.text}"
             }
@@ -124,7 +124,7 @@ fn CodeableConcept(codeable_concept: fhir::CodeableConcept) -> Element {
         for coding in codings {
             " "
             span {
-                class: "text-nowrap text-sm border rounded-full px-1.5 bg-blue-100 border-blue-500",
+                class: "inline-block text-sm border rounded-full px-1.5 bg-blue-100 border-blue-500",
                 title: "{coding.system.clone().unwrap_or_default()}",
                 "{coding.code.clone().unwrap_or_default()}"
             }
@@ -152,10 +152,10 @@ fn PatientView(id: String) -> Element {
                     .sorted_by_key(|(_, t)| t.clone())
                     .circular_tuple_windows()
                 {
-                    div { class: "my-3 p-2 border border-gray-300 rounded bg-gray-50",
-                        match entry.resource {
-                            fhir::Resource::Encounter(ref encounter) => {
-                                rsx! {
+                    match entry.resource {
+                        fhir::Resource::Encounter(ref encounter) => {
+                            rsx! {
+                                div { class: "my-3 p-2 border rounded border-gray-300 bg-gray-50",
                                     p {
                                         span { class: "font-bold", "Encounter" }
                                         OptionalChip { chip: encounter.status_chip() }
@@ -168,12 +168,33 @@ fn PatientView(id: String) -> Element {
                                     p { "Service provider: {encounter.service_provider()}" }
                                 }
                             }
-                            fhir::Resource::Condition(ref condition) => {
-                                rsx! {
-                                    p {
+                        }
+                        fhir::Resource::Condition(ref condition) => {
+                            rsx! {
+                                div {
+                                    class: "my-3 p-2 border rounded",
+                                    class: if condition.is_neoplasm() { "border-orange-300 bg-orange-50" } else { "border-gray-300 bg-gray-50" },
+                                    div { class: "flex items-center flex-wrap gap-1",
                                         span { class: "font-bold", "Condition" }
                                         OptionalChip { chip: condition.clinical_status_chip() }
                                         OptionalChip { chip: condition.verification_status_chip() }
+                                        if condition.is_neoplasm() {
+                                            div {
+                                                class: "ml-auto",
+                                                title: "ICD-10-GM codes in the range C00-D48 represent neoplasms and are highlighted orange.",
+                                                svg {
+                                                    class: "size-5 text-orange-300",
+                                                    xmlns: "http://www.w3.org/2000/svg",
+                                                    "viewBox": "0 0 24 24",
+                                                    fill: "currentColor",
+                                                    path {
+                                                        "fill-rule": "evenodd",
+                                                        d: "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm9.008-3.018a1.502 1.502 0 0 1 2.522 1.159v.024a1.44 1.44 0 0 1-1.493 1.418 1 1 0 0 0-1.037.999V14a1 1 0 1 0 2 0v-.539a3.44 3.44 0 0 0 2.529-3.256 3.502 3.502 0 0 0-7-.255 1 1 0 0 0 2 .076c.014-.398.187-.774.48-1.044Zm.982 7.026a1 1 0 1 0 0 2H12a1 1 0 1 0 0-2h-.01Z",
+                                                        "clip-rule": "evenodd",
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                     time { class: "text-sm text-gray-600", "{format_timestamp(timestamp)}" }
                                     p {
@@ -182,11 +203,32 @@ fn PatientView(id: String) -> Element {
                                     }
                                 }
                             }
-                            fhir::Resource::Procedure(ref procedure) => {
-                                rsx! {
-                                    p {
+                        }
+                        fhir::Resource::Procedure(ref procedure) => {
+                            rsx! {
+                                div {
+                                    class: "my-3 p-2 border rounded",
+                                    class: if procedure.is_radiation_therapy_or_nuclear_medicine_therapy_or_chemotherapy() { "border-orange-300 bg-orange-50" } else { "border-gray-300 bg-gray-50" },
+                                    div { class: "flex items-center flex-wrap gap-1",
                                         span { class: "font-bold", "Procedure" }
                                         OptionalChip { chip: procedure.status_chip() }
+                                        if procedure.is_radiation_therapy_or_nuclear_medicine_therapy_or_chemotherapy() {
+                                            div {
+                                                class: "ml-auto",
+                                                title: "OPS codes in the range 8-52...8-54 represent radiation therapy, nuclear medicine therapy, and chemotherapy and are highlighted orange.",
+                                                svg {
+                                                    class: "size-5 text-orange-300",
+                                                    xmlns: "http://www.w3.org/2000/svg",
+                                                    "viewBox": "0 0 24 24",
+                                                    fill: "currentColor",
+                                                    path {
+                                                        "fill-rule": "evenodd",
+                                                        d: "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm9.008-3.018a1.502 1.502 0 0 1 2.522 1.159v.024a1.44 1.44 0 0 1-1.493 1.418 1 1 0 0 0-1.037.999V14a1 1 0 1 0 2 0v-.539a3.44 3.44 0 0 0 2.529-3.256 3.502 3.502 0 0 0-7-.255 1 1 0 0 0 2 .076c.014-.398.187-.774.48-1.044Zm.982 7.026a1 1 0 1 0 0 2H12a1 1 0 1 0 0-2h-.01Z",
+                                                        "clip-rule": "evenodd",
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                     time { class: "text-sm text-gray-600", "{format_timestamp(timestamp)}" }
                                     p {
@@ -196,8 +238,10 @@ fn PatientView(id: String) -> Element {
                                     p { "Category: {procedure.category()}" }
                                 }
                             }
-                            fhir::Resource::Observation(ref observation) => {
-                                rsx! {
+                        }
+                        fhir::Resource::Observation(ref observation) => {
+                            rsx! {
+                                div { class: "my-3 p-2 border rounded border-gray-300 bg-gray-50",
                                     p {
                                         span { class: "font-bold", "Lab result" }
                                         OptionalChip { chip: observation.status_chip() }
@@ -216,8 +260,8 @@ fn PatientView(id: String) -> Element {
                                     }
                                 }
                             }
-                            _ => unreachable!(),
                         }
+                        _ => unreachable!(),
                     }
                     if next_timestamp.to_zoned(jiff::tz::TimeZone::system()).date()
                         > timestamp.to_zoned(jiff::tz::TimeZone::system()).date()

@@ -433,6 +433,12 @@ impl Condition {
     pub fn timeline_timestamp(&self) -> Option<jiff::Timestamp> {
         Some(self.recorded_date)
     }
+
+    pub fn is_neoplasm(&self) -> bool {
+        self.code
+            .code_in_system("http://fhir.de/CodeSystem/bfarm/icd-10-gm")
+            .is_some_and(|c| "C00".to_string() <= c && c <= "D48.9".to_string())
+    }
 }
 
 /// https://www.medizininformatik-initiative.de/fhir/core/modul-prozedur/StructureDefinition/Procedure
@@ -504,6 +510,12 @@ impl Procedure {
             .as_ref()
             .and_then(|period| period.start)
             .or(self.performed_date_time)
+    }
+
+    pub fn is_radiation_therapy_or_nuclear_medicine_therapy_or_chemotherapy(&self) -> bool {
+        self.code
+            .code_in_system("http://fhir.de/CodeSystem/bfarm/ops")
+            .is_some_and(|c| "8-520".to_string() <= c && c <= "8-549.x".to_string())
     }
 }
 
