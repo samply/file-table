@@ -1,17 +1,19 @@
-include:
-  - demo/compose.yaml
+# include:
+#   - demo/compose.yaml
 
-services:
-  scout:
-    image: samply/scout:main
-    ports:
-      - 8080:8080
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    configs:
-      - scout.toml
+# services:
+#   scout:
+#     image: samply/scout:main
+#     ports:
+#       - 8080:8080
+#     extra_hosts:
+#       - host.docker.internal:host-gateway
+#     configs:
+#       - scout.toml
 
-configs:
-  scout.toml:
-    content: |
-      fhir_base_url = "http://host.docker.internal:8081/fhir"
+# configs:
+#   scout.toml:
+#     content: |
+#       fhir_base_url = "http://host.docker.internal:8081/fhir"
+
+

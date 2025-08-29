@@ -5,8 +5,6 @@
 # HTML title tag content
 title = "scout"
 
-base_path = "scout"
-
 # include `assets` in web platform
 [web.resource]
 
